@@ -562,3 +562,11 @@ body {
     flex-wrap: wrap;
   }
 }
+
+.table-danger {
+  background: linear-gradient(
+    90deg,
+    rgba(244, 67, 54, 0.4) 0%,
+    rgba(0, 1, 0, 0) 100%
+  );
+}
