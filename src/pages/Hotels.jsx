@@ -14,11 +14,10 @@ const HotelClients = () => {
   const [hotels, setHotels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [filters, setFilters] = useState({});
+  const [filters] = useState({});
 
   // Modal states
   const [showAddHotel, setShowAddHotel] = useState(false);
-  const [showHotelDetails, setShowHotelDetails] = useState(null);
   const [showEditHotel, setShowEditHotel] = useState(null);
   const [showExportOptions, setShowExportOptions] = useState(false);
 
@@ -146,44 +145,48 @@ const HotelClients = () => {
 
   // Update hotel
   const handleUpdateHotel = async (e) => {
-  e.preventDefault();
-  try {
-    // Prepare payload with proper type conversion
-    const payload = {
-      name: showEditHotel.name,
-      address: showEditHotel.address,
-      email: showEditHotel.email,
-      contact_phone: showEditHotel.contact_phone,
-      hadhi: showEditHotel.hadhi,
-      total_rooms: Number(showEditHotel.total_rooms) || 0,
-      type: showEditHotel.type,
-      waste_per_day: Number(showEditHotel.waste_per_day) || 0,
-      collection_frequency: showEditHotel.collection_frequency,
-      currency: showEditHotel.currency,
-      payment_account: showEditHotel.payment_account,
-    };
+    e.preventDefault();
+    try {
+      // Prepare payload with proper type conversion
+      const payload = {
+        name: showEditHotel.name,
+        address: showEditHotel.address,
+        email: showEditHotel.email,
+        contact_phone: showEditHotel.contact_phone,
+        hadhi: showEditHotel.hadhi,
+        total_rooms: Number(showEditHotel.total_rooms) || 0,
+        type: showEditHotel.type,
+        waste_per_day: Number(showEditHotel.waste_per_day) || 0,
+        collection_frequency: showEditHotel.collection_frequency,
+        currency: showEditHotel.currency,
+        payment_account: showEditHotel.payment_account,
+      };
 
-    console.log("Updating hotel payload:", payload);
+      console.log("Updating hotel payload:", payload);
 
-    // Call API to update hotel
-    const updatedHotel = await updateHotel(showEditHotel.hotel_id || showEditHotel.id, payload);
+      // Call API to update hotel
+      const updatedHotel = await updateHotel(
+        showEditHotel.hotel_id || showEditHotel.id,
+        payload
+      );
 
-    // Update frontend state using functional update to ensure re-render
-    setHotels((prevHotels) =>
-      prevHotels.map((hotel) =>
-        (hotel.hotel_id || hotel.id) === (updatedHotel.hotel_id || updatedHotel.id)
-          ? updatedHotel
-          : hotel
-      )
-    );
+      // Update frontend state using functional update to ensure re-render
+      setHotels((prevHotels) =>
+        prevHotels.map((hotel) =>
+          (hotel.hotel_id || hotel.id) ===
+          (updatedHotel.hotel_id || updatedHotel.id)
+            ? updatedHotel
+            : hotel
+        )
+      );
 
-    // Close edit modal
-    setShowEditHotel(null);
-  } catch (err) {
-    console.error("Failed to update hotel:", err.response?.data || err);
-    alert("Failed to update hotel. Please try again.");
-  }
-};
+      // Close edit modal
+      setShowEditHotel(null);
+    } catch (err) {
+      console.error("Failed to update hotel:", err.response?.data || err);
+      alert("Failed to update hotel. Please try again.");
+    }
+  };
 
   // Delete hotel
   const handleDeleteHotel = async (id) => {
@@ -290,33 +293,12 @@ const HotelClients = () => {
             <div className="card">
               <div className="card-header">
                 <h3>Active Hotels</h3>
-                <span>🏨</span>
+                <span>
+                  <i class="bi bi-house-door"></i>
+                </span>
               </div>
-              <h4>{hotels.filter((h) => h.status === "Active").length}</h4>
+              <h4>{hotels.length}</h4>
               <p>Out of {hotels.length} total clients</p>
-            </div>
-
-            <div className="card">
-              <div className="card-header">
-                <h3>Premium Clients</h3>
-                <span>⭐</span>
-              </div>
-              <h4>{hotels.filter((h) => h.contract === "Premium").length}</h4>
-              <p>High-value partnerships</p>
-            </div>
-
-            <div className="card">
-              <div className="card-header">
-                <h3>Weekly Collections</h3>
-                <span>♻️</span>
-              </div>
-              <h4>
-                {hotels.reduce(
-                  (sum, hotel) => sum + hotel.collectionsPerWeek,
-                  0
-                )}
-              </h4>
-              <p>Scheduled pickups across all hotels</p>
             </div>
           </div>
 
@@ -494,6 +476,7 @@ const HotelClients = () => {
                     <option value="villa">Villa</option>
                     <option value="guest_house">Guest House</option>
                     <option value="restaurant">Restaurant</option>
+                    <option value="private_house">Private House</option>
                   </select>
                 </div>
 
@@ -509,39 +492,52 @@ const HotelClients = () => {
                 </div>
 
                 {/* Collection Frequency */}
-<div className="form-group">
-  <label>Mara ngapi kuchukuliwa</label>
-  <select
-    name="collection_frequency"
-    className="form-control"
-    value={newHotel.collection_frequency}
-    onChange={handleInputChange}
-  >
-    <option value="">-- Chagua --</option>
-
-    {/* Weekly options */}
-    <option value="1">Mara kwa wiki - 1 mara</option>
-    <option value="2">Mara kwa wiki - 2 mara</option>
-    <option value="3">Mara kwa wiki - 3 mara</option>
-    <option value="4">Mara kwa wiki - 4 mara</option>
-    <option value="5">Mara kwa wiki - 5 mara</option>
-    <option value="6">Mara kwa wiki - 6 mara</option>
-    <option value="7">Daily</option>
-  </select>
-</div>
-
-
                 <div className="form-group">
-                  <label>Malipo kwa</label>
+                  <label>Mara ngapi kuchukuliwa</label>
                   <select
-                    name="currency" // ✅ must match state
+                    name="collection_frequency"
                     className="form-control"
-                    value={newHotel.currency}
+                    value={newHotel.collection_frequency}
                     onChange={handleInputChange}
                   >
-                    <option value="">-- Select --</option>
-                    <option value="TZS">TZS</option>
-                    <option value="USD">USD</option>
+                    <option value="">-- Chagua --</option>
+
+                    {/* Weekly options */}
+                    <option value="1">Mara kwa wiki - 1 mara</option>
+                    <option value="2">Mara kwa wiki - 2 mara</option>
+                    <option value="3">Mara kwa wiki - 3 mara</option>
+                    <option value="4">Mara kwa wiki - 4 mara</option>
+                    <option value="5">Mara kwa wiki - 5 mara</option>
+                    <option value="6">Mara kwa wiki - 6 mara</option>
+                    <option value="7">Daily</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Currency</label>
+                  <select
+                    name="currency"
+                    value={newHotel.currency}
+                    onChange={handleInputChange}
+                    required
+                    className="form-control"
+                  >
+                    <option value="">Select Currency</option>
+                    <option value="USD">USD ($)</option>
+                    <option value="EUR">EUR (€)</option>
+                    <option value="GBP">GBP (£)</option>
+                    <option value="TZS">TZS (TSh)</option>
+                    <option value="KES">KES (KSh)</option>
+                    <option value="UGX">UGX (USh)</option>
+                    <option value="ZAR">ZAR (R)</option>
+                    <option value="AUD">AUD (A$)</option>
+                    <option value="CAD">CAD (C$)</option>
+                    <option value="JPY">JPY (¥)</option>
+                    <option value="INR">INR (₹)</option>
+                    <option value="CHF">CHF (Fr)</option>
+                    <option value="CNY">CNY (¥)</option>
+                    <option value="SGD">SGD (S$)</option>
+                    <option value="NZD">NZD (NZ$)</option>
                   </select>
                 </div>
 

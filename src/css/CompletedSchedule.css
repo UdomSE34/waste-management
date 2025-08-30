@@ -1,0 +1,148 @@
+/* Modal Body Styling */
+.modal-body {
+  padding: 20px;
+  background: #f9fbfc;
+  border-radius: 10px;
+}
+
+/* Hotel Info */
+.modal-header-info {
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+  color: #444;
+}
+
+/* Waste Type Legend */
+.waste-legend {
+  display: flex;
+  gap: 15px;
+  margin: 1rem 0;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.85rem;
+  background: #fff;
+  padding: 4px 8px;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.legend-color {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+}
+
+/* Color Tokens */
+.color-paper   { background: #E8F5E9; border-left: 3px solid #66BB6A; }
+.color-glass   { background: #E0F2F1; border-left: 3px solid #26A69A; }
+.color-compost { background: #FFF8E1; border-left: 3px solid #FFB300; }
+.color-plastic { background: #FBE9E7; border-left: 3px solid #FF7043; }
+.color-metal   { background: #ECEFF1; border-left: 3px solid #78909C; }
+
+/* Data Table */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.data-table th,
+.data-table td {
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.data-table th {
+  background: #0096C7;
+  color: white;
+  font-weight: 600;
+}
+
+.data-table tr:hover {
+  background: #f1f9fc;
+}
+
+/* Waste Badges */
+.waste-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: white;
+}
+
+/* Waste Badges */
+.waste-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: white;
+}
+
+/* Assigned Colors */
+.badge-paper     { background: #66BB6A; }   /* Green */
+.badge-glass     { background: #26A69A; }   /* Teal */
+.badge-compost   { background: #FFB300; }   /* Yellow/Orange */
+.badge-organic   { background: #4CAF50; }   /* Dark Green */
+.badge-plastic   { background: #FF7043; }   /* Orange */
+.badge-metal     { background: #78909C; }   /* Steel Gray */
+.badge-general   { background: #9E9E9E; }   /* Neutral Gray */
+.badge-hazardous { background: #D32F2F; }   /* Red */
+.badge-ewaste    { background: #7E57C2; }   /* Purple */
+
+/* Legend Colors */
+.color-paper     { background: #E8F5E9; border-left: 3px solid #66BB6A; }
+.color-glass     { background: #E0F2F1; border-left: 3px solid #26A69A; }
+.color-compost   { background: #FFF8E1; border-left: 3px solid #FFB300; }
+.color-organic   { background: #E8F5E9; border-left: 3px solid #4CAF50; }
+.color-plastic   { background: #FBE9E7; border-left: 3px solid #FF7043; }
+.color-metal     { background: #ECEFF1; border-left: 3px solid #78909C; }
+.color-general   { background: #F5F5F5; border-left: 3px solid #9E9E9E; }
+.color-hazardous { background: #FFEBEE; border-left: 3px solid #D32F2F; }
+.color-ewaste    { background: #F3E5F5; border-left: 3px solid #7E57C2; }
+
+
+/* Status Badges */
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.status-completed   { background: #28a745; color: white; }
+.status-in-progress { background: #ffc107; color: #333; }
+.status-pending     { background: #dc3545; color: white; }
+
+/* Summary Box */
+.summary-box {
+  margin-top: 1.5rem;
+  padding: 12px 15px;
+  background: #e6f7ff;
+  border-left: 4px solid #0096C7;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+.dustbin-form{
+  background: #f9feff;
+  border-radius: 12px;
+  padding: 20px;
+  border-left: 2px solid #48cae4;
+  box-shadow: 0 5px 15px rgba(0, 180, 216, 0.08);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  margin-bottom: 20px;
+}

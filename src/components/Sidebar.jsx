@@ -1,15 +1,16 @@
 import { NavLink } from "react-router-dom";
-import "../css/Sidebar.css"; // Create this file for styles
+import "../css/Sidebar.css";
 
 export default function Sidebar() {
   const links = [
-    { to: "/", icon: "📊", label: "Dashboard" },
-    { to: "/scheduling", icon: "🗓️", label: "Scheduling" },
-    { to: "/routes", icon: "🚛", label: "Collection Routes" },
-    { to: "/workers", icon: "👷", label: "Worker Management" },
-    { to: "/hotels", icon: "🏨", label: "Hotel Clients" },
-    { to: "/analytics", icon: "📈", label: "Analytics" },
-    
+    { to: "/staff", icon: "bi-speedometer2", label: "Dashboard" },
+    { to: "/staff/scheduling", icon: "bi-calendar-event", label: "Scheduling" },
+    { to: "/staff/routes", icon: "bi-truck", label: "Collection Routes" },
+    { to: "/staff/workers", icon: "bi-people", label: "Worker Management" },
+    { to: "/staff/hotels", icon: "bi-building", label: "Hotel Clients" },
+    { to: "/staff/pending-hotels", icon: "bi-building", label: "Pending Hotels" },
+    { to: "/staff/analytics", icon: "bi-bar-chart-line", label: "Analytics" },
+    { to: "/staff/completed-schedules", icon: "bi-check2-circle", label: "Completed Schedules" },
   ];
 
   return (
@@ -18,11 +19,11 @@ export default function Sidebar() {
         <NavLink
           key={link.to}
           to={link.to}
-          className={({ isActive }) => 
+          className={({ isActive }) =>
             `nav-item ${isActive ? "active" : ""}`
           }
         >
-          <span className="nav-icon">{link.icon}</span>
+          <i className={`bi ${link.icon} nav-icon`}></i>
           <span className="nav-text">{link.label}</span>
         </NavLink>
       ))}

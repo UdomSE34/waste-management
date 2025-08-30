@@ -73,7 +73,7 @@ const Analytics = () => {
         <div className="card">
           <div className="card-header">
             <h3>Total Waste Collected</h3>
-            <span>🗑️</span>
+            <span><i class="bi bi-recycle"></i></span>
           </div>
           <h4>{totalWasteCollected} kg</h4>
           <p>Across all waste types</p>
@@ -82,7 +82,7 @@ const Analytics = () => {
         <div className="card">
           <div className="card-header">
             <h3>Avg. Recycling Rate</h3>
-            <span>♻️</span>
+            <span><i class="bi bi-recycle"></i></span>
           </div>
           <h4>{avgRecyclingRate}%</h4>
           <p>Of collected waste recycled</p>
@@ -91,7 +91,7 @@ const Analytics = () => {
         <div className="card">
           <div className="card-header">
             <h3>Total Collections</h3>
-            <span>🚛</span>
+            <span><i class="bi bi-bar-chart-fill"></i></span>
           </div>
           <h4>{totalCollections}</h4>
           <p>Completed this period</p>

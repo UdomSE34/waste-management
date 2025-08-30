@@ -1,14 +1,33 @@
-// src/services/userService.js
-import axios from 'axios';
+import axios from "axios";
 
-const API_BASE_URL = '/api/users/';
+const API_URL = "/api/users/";
 
-export const getUsers = async (params = {}) => {
-  try {
-    const response = await axios.get(API_BASE_URL, { params });
-    return response.data;
-  } catch (error) {
-    console.error("Error fetching users:", error);
-    throw error;
-  }
+// Get all workers
+export const fetchWorkers = async () => {
+  const res = await axios.get(API_URL);
+  // filter only workers
+  return res.data.filter(user => user.role === "Workers");
+};
+
+// Add worker
+export const addWorker = async (worker) => {
+  const res = await axios.post(API_URL, worker);
+  return res.data;
+};
+
+// Update worker
+export const updateWorker = async (id, worker) => {
+  const res = await axios.put(`${API_URL}${id}/`, worker);
+  return res.data;
+};
+
+// Delete worker
+export const deleteWorker = async (id) => {
+  await axios.delete(`${API_URL}${id}/`);
+};
+
+// Suspend/Activate worker
+export const toggleActive = async (id, isActive) => {
+  const res = await axios.patch(`${API_URL}${id}/`, { is_active: isActive });
+  return res.data;
 };
