@@ -542,14 +542,18 @@ const HotelClients = () => {
                 </div>
 
                 <div className="form-group">
-                  <label>Akaunti ya Kampuni</label>
-                  <input
-                    type="text"
-                    name="payment_account" // ✅ must match state
-                    className="form-control"
+                  <label>Payment Account:</label>
+                  <select
+                    name="payment_account"
                     value={newHotel.payment_account}
                     onChange={handleInputChange}
-                  />
+                    required
+                  >
+                    <option value="">-- Select Payment Method --</option>
+                    <option value="account">Account</option>
+                    <option value="cash">Cash</option>
+                    <option value="phone_number">Phone Number</option>
+                  </select>
                 </div>
               </div>
 

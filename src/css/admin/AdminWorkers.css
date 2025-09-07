@@ -1,0 +1,31 @@
+.content {
+  padding: 20px;
+  margin-left: 20px; /* Adjust based on sidebar width */
+  
+}
+
+
+
+/* Status Badges */
+.status-badge {
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.status-active {
+  background-color: #67e972;
+  color: var(--primary-green);
+}
+
+.status-leave {
+  background-color: #FFF3E0;
+  color: var(--alert-orange);
+}
+
+.status-inactive {
+  background-color: #EFEBE9;
+  color: var(--compost);
+}

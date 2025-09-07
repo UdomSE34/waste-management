@@ -59,12 +59,14 @@ const Login = () => {
       localStorage.setItem("authToken", token);
       localStorage.setItem("userRole", user.role);
       localStorage.setItem("userName", user.name);
+      localStorage.setItem("userId", user.id);
+
 
       // Role-based navigation
-      if (user.role === "Staff") {
-        navigate("/staff"); // admin/staff dashboard
-      } else if (user.role === "Workers") {
-        navigate("/worker"); // workers dashboard
+      if (user.role === "Admin") {
+        navigate("/Admin"); // admin/staff dashboard
+      } else if (user.role === "Staff") {
+        navigate("/Staff"); // workers dashboard
       } else if (user.role === "client") {
         navigate("/client/hotel"); // client dashboard
       } else {

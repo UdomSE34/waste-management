@@ -3,6 +3,15 @@ import { Routes, Route, Navigate } from "react-router-dom";
 // Layouts
 import StaffLayout from "./layouts/StaffLayout"; // Staff dashboard layout
 import ClientLayout from "./layouts/ClientLayout"; // Client layout
+import AdminLayout from "./layouts/AdminLayouts";
+
+// Admin Pages 
+import AdminWorkers from "./pages/admin/AdminWorkers";
+import SalaryDashboard from "./pages/admin/SalaryDashboard";
+import SalaryPolicies from "./pages/admin/SalaryPolices";
+import AttendanceDashboard from "./pages/admin/AttendanceDashboard";
+import PaidHotels from "./pages/admin/PaidHotels";
+
 
 // Staff Pages
 import Dashboard from "./pages/Dashboard";
@@ -14,13 +23,14 @@ import CollectionsRoutes from "./pages/CollectionsRoutes";
 import Analytics from "./pages/Analytics";
 import CompletedSchedule from "./pages/CompletedSchedule";
 import PendingHotels from "./pages/PendingPage";
+import IncompleteSchedule from "./pages/IncompleteSchedule";
 
 // Client Pages
 import PageHotel from "./pages/client/PageHotel";
 import ClientRegistration from "./pages/client/ClientRegistration";
 import Login from "./pages/auth/Login";
-// import ClientPendingHotels from "./pages/client/PendingPage";
-// import ClientScheduling from "./pages/client/Scheduling";
+import ClientPendingHotels from "./pages/client/ClientPendingHotels";
+import ClientScheduling from "./pages/client/ClientScheduling";
 
 // CSS
 import "./css/styles.css";
@@ -44,17 +54,23 @@ export default function App() {
         <Route path="completed-schedules" element={<CompletedSchedule />} />
         <Route path="pending-hotels" element={<PendingHotels />} />
         <Route path="*" element={<Navigate to="/staff" />} /> {/* fallback */}
+        <Route path="incomplete-schedules" element={<IncompleteSchedule />} />
       </Route>
 
       {/* Client Pages */}
       <Route path="/client/*" element={<ClientLayout />}>
         <Route path="hotel" element={<PageHotel />} />
-        {/* <Route path="hotel-pending" element={<ClientPendingHotels />} />
-        <Route path="schedule" element={<ClientScheduling />} /> */}
+        <Route path="hotel-pending" element={<ClientPendingHotels />} />
+        <Route path="schedule" element={<ClientScheduling />} />                      
+      </Route>
 
-        
-        
-      
+      {/* Admin Pages */}
+      <Route path="/admin/*" element={<AdminLayout/>}>
+      <Route path="workers" element={<AdminWorkers />} />
+      <Route path="salary-dashboard" element={<SalaryDashboard />} />
+      <Route path="salary-policies" element={<SalaryPolicies />} />
+      <Route path="attendance" element={<AttendanceDashboard />} />
+      <Route path="paid-hotels" element={<PaidHotels />} />
       </Route>
 
       {/* Root redirect to login */}

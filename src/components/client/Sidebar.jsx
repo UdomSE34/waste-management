@@ -1,11 +1,10 @@
 import { NavLink } from "react-router-dom";
-// import "../../css/client/Sidebar.css";
 
 export default function Sidebar() {
   const links = [
     { to: "/client/hotel", icon: "bi-speedometer2", label: "Dashboard" },
-    { to: "/client/pending-hotels", icon: "bi-building", label: "Registered Hotels" },
-    { to: "/client/scheduling", icon: "bi-calendar-event", label: "Scheduling" },
+    { to: "/client/hotel-pending", icon: "bi-building", label: "Registered Hotels" },
+    { to: "/client/schedule", icon: "bi-calendar-event", label: "Scheduling" },
   ];
 
   return (

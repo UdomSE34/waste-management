@@ -1,8 +1,11 @@
-import React, { useState } from "react";
-import axios from "axios";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import "../../css/client/PageHotel.css";
+import hotelService from "../../services/client/hotelService";
 
 const PageHotel = () => {
+  const navigate = useNavigate();
+
   const initialHotelState = {
     name: "",
     address: "",
@@ -15,11 +18,23 @@ const PageHotel = () => {
     collection_frequency: "",
     currency: "",
     payment_account: "",
+    client: "", // hidden field
   };
 
   const [newHotel, setNewHotel] = useState(initialHotelState);
   const [submitted, setSubmitted] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
+
+  // Attach client_id from localStorage
+  useEffect(() => {
+    const clientId = localStorage.getItem("userId");
+    if (!clientId) {
+      alert("You must log in to access this page.");
+      navigate("/login");
+      return;
+    }
+    setNewHotel((prev) => ({ ...prev, client: clientId }));
+  }, [navigate]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -29,19 +44,22 @@ const PageHotel = () => {
   const nextStep = () => setCurrentStep((prev) => prev + 1);
   const prevStep = () => setCurrentStep((prev) => prev - 1);
 
-  const handleHotelSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      await axios.post("/api/pending-hotels/", newHotel);
-      setSubmitted(true);
-      setNewHotel(initialHotelState);
-      setCurrentStep(1);
-    } catch (error) {
-      console.error("Error submitting hotel info:", error);
-      alert("Failed to submit hotel information.");
-    }
-  };
+ const handleHotelSubmit = async (e) => {
+  e.preventDefault();
 
+  try {
+    await hotelService.createPendingHotel(newHotel); // POST data
+    setSubmitted(true);
+    setNewHotel(initialHotelState);
+    setCurrentStep(1);
+  } catch (error) {
+    console.error("Error submitting hotel info:", error.response || error);
+    alert(
+      error.response?.data?.detail ||
+        "Failed to submit hotel information. Please try again."
+    );
+  }
+};
   if (submitted) {
     return (
       <div className="success-message dashboard-success">
@@ -55,11 +73,9 @@ const PageHotel = () => {
   return (
     <div className="dashboard-hotel-form">
       <div className="dashboard-header">
-        <br />
         <h1>Hotel Registration</h1>
         <p>Register a new hotel for waste management services</p>
       </div>
-      <br /> <br />
 
       {/* Progress Steps */}
       <div className="form-progress dashboard-progress">
@@ -77,7 +93,13 @@ const PageHotel = () => {
         </div>
       </div>
 
-      <form onSubmit={handleHotelSubmit} className="dashboard-hotel-form-content">
+      <form
+        onSubmit={handleHotelSubmit}
+        className="dashboard-hotel-form-content"
+      >
+        {/* Hidden client field */}
+        <input type="hidden" name="client" value={newHotel.client} />
+
         {/* Step 1: Basic Info */}
         {currentStep === 1 && (
           <div className="form-section active">
@@ -251,13 +273,17 @@ const PageHotel = () => {
 
               <div className="form-group">
                 <label>Payment Account:</label>
-                <input
-                  type="text"
+                <select
                   name="payment_account"
                   value={newHotel.payment_account}
                   onChange={handleInputChange}
                   required
-                />
+                >
+                  <option value="">-- Select Payment Method --</option>
+                  <option value="account">Account</option>
+                  <option value="cash">Cash</option>
+                  <option value="phone_number">Phone Number</option>
+                </select>
               </div>
             </div>
 

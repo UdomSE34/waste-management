@@ -9,7 +9,7 @@ export default function Sidebar() {
     { to: "/staff/workers", icon: "bi-people", label: "Worker Management" },
     { to: "/staff/hotels", icon: "bi-building", label: "Hotel Clients" },
     { to: "/staff/pending-hotels", icon: "bi-building", label: "Pending Hotels" },
-    { to: "/staff/analytics", icon: "bi-bar-chart-line", label: "Analytics" },
+    { to: "/staff/incomplete-schedules", icon: "bi-bar-chart-line", label: "Incomplete Schedules" },
     { to: "/staff/completed-schedules", icon: "bi-check2-circle", label: "Completed Schedules" },
   ];
 
