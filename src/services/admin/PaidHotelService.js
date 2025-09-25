@@ -1,29 +1,48 @@
+// src/services/admin/PaidHotelService.js
 import axios from "axios";
 
-const API_URL = "/api/paid-hotels/";
+const API_URL = "http://127.0.0.1:8000/api/paid-hotels/";
 
-// Fetch all PaidHotelInfo records
+// Create axios instance with auth
+const api = axios.create({
+  baseURL: API_URL,
+  timeout: 10000,
+});
+
+// Attach token automatically
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("authToken");
+    if (token) {
+      config.headers["Authorization"] = `Token ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// ✅ Fetch all PaidHotelInfo records
 export const getPaidHotels = async () => {
-  const res = await axios.get(API_URL);
+  const res = await api.get("/");
   return res.data;
 };
 
-// Mark a hotel as Paid
+// ✅ Mark a hotel as Paid
 export const markHotelAsPaid = async (id) => {
-  const res = await axios.patch(`${API_URL}${id}/mark_paid/`);
+  const res = await api.patch(`${id}/mark_paid/`);
   return res.data;
 };
 
-// Mark a hotel as Unpaid
+// ✅ Mark a hotel as Unpaid
 export const markHotelAsUnpaid = async (id) => {
-  const res = await axios.patch(`${API_URL}${id}/mark_unpaid/`);
+  const res = await api.patch(`${id}/mark_unpaid/`);
   return res.data;
 };
 
-// Export PaidHotelInfo data
-export const exportPaidHotels = async (format) => {
-  const res = await axios.get(`${API_URL}export_pdf/`, {
-    responseType: "blob", // for file download
+// ✅ Export PaidHotelInfo data
+export const exportPaidHotels = async (format = "pdf") => {
+  const response = await api.get(`export_${format}/`, {
+    responseType: "blob",
   });
-  return res.data;
+  return response;
 };

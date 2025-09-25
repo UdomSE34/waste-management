@@ -8,7 +8,7 @@ import hotelService from "../../services/client/hotelService"; // default import
 
 const ClientScheduling = () => {
   const [collections, setCollections] = useState([]);
-  const [,setHotels] = useState([]);
+  const [, setHotels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -16,25 +16,33 @@ const ClientScheduling = () => {
     const fetchData = async () => {
       try {
         const clientId = localStorage.getItem("userId");
-        console.log("Logged-in Client ID:", clientId); // for testing
+        console.log("Logged-in Client ID:", clientId);
 
-        // Fetch all collections and hotels
+        // Fetch collections and hotels in parallel
         const [collectionsRes, hotelsRes] = await Promise.all([
           getCollections(),
           hotelService.getPendingHotels(),
         ]);
 
-        // Filter hotels that belong to the current client
-        const clientHotels = hotelsRes.data
-          ? hotelsRes.data.filter((hotel) => hotel.client === clientId)
-          : [];
+        console.log("All Collections:", collectionsRes);
+        console.log("All Hotels:", hotelsRes);
+
+        // Filter hotels owned by this client
+        const clientHotels = hotelsRes.filter((hotel) => hotel.client === clientId);
         setHotels(clientHotels);
 
-        // Filter collections:
-        // Only include collections where hotel_name matches a hotel the client owns
+        console.log("Client Hotels:", clientHotels);
+
+        // Filter collections that belong to client's hotels
         const clientCollections = collectionsRes.filter((col) =>
-          clientHotels.some((hotel) => hotel.name === col.hotel_name)
+          clientHotels.some(
+            (hotel) =>
+              (hotel.name?.trim().toLowerCase() || "") ===
+              (col.hotel_name?.trim().toLowerCase() || "")
+          )
         );
+
+        console.log("Client Collections:", clientCollections);
 
         setCollections(clientCollections);
         setLoading(false);
@@ -54,8 +62,7 @@ const ClientScheduling = () => {
   // Transform collections for DataTable
   const rows = collections.map((item) => ({
     Day: item.day,
-    "Start Time": item.start_time,
-    "End Time": item.end_time,
+    "Time Range": item.slot,
     Hotel: item.hotel_name,
     Status: item.status,
   }));
@@ -63,7 +70,7 @@ const ClientScheduling = () => {
   return (
     <div className="content">
       <div className="page-header">
-        <h2>My Hotel Collections</h2>
+        <h2>Collections</h2>
       </div>
       <br />
 
@@ -71,10 +78,7 @@ const ClientScheduling = () => {
         <div className="card-header">
           <h3>Collections</h3>
         </div>
-        <DataTable
-          columns={["Day", "Start Time", "End Time", "Hotel", "Status"]}
-          rows={rows}
-        />
+        <DataTable columns={["Day", "Time Range", "Hotel", "Status"]} rows={rows} />
       </div>
     </div>
   );

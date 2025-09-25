@@ -1,154 +1,75 @@
 import axios from "axios";
 
-const API_URL = "/api/users/";
+// Token-aware Axios instance
+const api = axios.create({
+  baseURL: "/api/users/",
+  timeout: 10000,
+});
 
-// Utility: Validate ID
-const validateId = (id, context) => {
-  if (id === undefined || id === null || id === "") {
-    throw new Error(`${context}: Invalid user ID: ${id}`);
-  }
-  return true;
-};
+// Attach token to every request
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("authToken");
+    if (token) {
+      config.headers["Authorization"] = `Token ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
-// Utility: Clean URL (prevent double slashes)
-const cleanUrl = (url) => url.replace(/\/+/g, "/").replace(":/", "://");
-
-// Get all workers
+/**
+ * Get all workers (filter by roles)
+ */
 export const getWorkers = async () => {
   try {
-    const res = await axios.get(API_URL);
-
-    let users = [];
-    if (Array.isArray(res.data)) {
-      users = res.data;
-    } else if (res.data && Array.isArray(res.data.results)) {
-      users = res.data.results; // Handle pagination
-    } else {
-      console.warn("Unexpected response format from /api/users/", res.data);
-      return [];
-    }
-
-    // Filter roles: adjust these to match your backend's exact role strings
-    return users.filter(
-      (user) =>
-        user.role === "Staff" ||
-        user.role === "Workers" ||
-        user.role === "Supervisors" ||
-        user.role === "Drivers" ||
-        user.role === "HR"
-    );
+    const res = await api.get("/");
+    return Array.isArray(res.data)
+      ? res.data.filter((user) =>
+          ["Workers", "Supervisors", "Drivers", "HR", "Staff"].includes(user.role)
+        )
+      : [];
   } catch (error) {
-    console.error("❌ Failed to fetch workers:", {
-      message: error.message,
-      status: error.response?.status,
-      data: error.response?.data,
-    });
+    console.error("Error fetching workers:", error.response?.data || error.message);
     throw error;
   }
 };
 
-// Add worker
-export const createWorker = async (worker) => {
+/**
+ * Add a new worker
+ * @param {Object} worker - worker object { name, email, role, etc. }
+ */
+export const addWorker = async (worker) => {
   if (!worker || typeof worker !== "object") {
     throw new Error("Invalid worker data: expected an object");
   }
 
   try {
-    const res = await axios.post(API_URL, worker);
+    const res = await api.post("/", worker);
     return res.data;
   } catch (error) {
-    console.error("❌ Failed to create worker:", {
-      payload: worker,
-      message: error.message,
-      status: error.response?.status,
-      data: error.response?.data,
-    });
+    console.error("Error adding worker:", error.response?.data || error.message);
     throw error;
   }
 };
 
-// Update worker
-export const updateWorker = async (id, worker) => {
-  validateId(id, "updateWorker");
-
-  if (!worker || typeof worker !== "object") {
-    throw new Error("Invalid worker data to update");
+/**
+ * Unified action for suspend, activate, delete, approve, reject
+ * @param {string} userId - User UUID
+ * @param {string} action - 'approve' | 'reject'
+ * @param {string} type - 'suspend' | 'delete' | 'activate'
+ * @param {string} comment - Reason/comment (required)
+ */
+export const approveAction = async (userId, action, type, comment) => {
+  if (!userId || !action || !type || !comment) {
+    throw new Error("userId, action, type, and comment are all required");
   }
 
   try {
-    const url = cleanUrl(`${API_URL}${id}/`);
-    const res = await axios.put(url, worker);
+    const res = await api.patch(`${userId}/approve-action/`, { action, type, comment });
     return res.data;
   } catch (error) {
-    console.error("❌ Failed to update worker:", {
-      id,
-      payload: worker,
-      message: error.message,
-      status: error.response?.status,
-      data: error.response?.data,
-    });
-    throw error;
-  }
-};
-
-// Delete worker (hard delete)
-export const deleteWorker = async (id) => {
-  validateId(id, "deleteWorker");
-
-  try {
-    const url = cleanUrl(`${API_URL}${id}/`);
-    await axios.delete(url);
-  } catch (error) {
-    console.error("❌ Failed to delete worker:", {
-      id,
-      message: error.message,
-      status: error.response?.status,
-      data: error.response?.data,
-    });
-    throw error;
-  }
-};
-
-// Suspend/Activate worker (via status or is_active)
-// In workerService.js
-export const toggleActive = async (id, isActive) => {
-  validateId(id, "toggleActive");
-  const newStatus = isActive ? "active" : "suspended";
-
-  try {
-    const url = cleanUrl(`${API_URL}${id}/`);
-    const res = await axios.patch(url, { status: newStatus });
-    return res.data;
-  } catch (error) {
-    console.error("❌ Failed to update status:", { id, newStatus, error });
-    throw error;
-  }
-};
-
-// Approve or reject suspend/delete request
-export const approveAction = async (id, action, type) => {
-  validateId(id, "approveAction");
-
-  if (!["approve", "reject"].includes(action)) {
-    throw new Error("Action must be 'approve' or 'reject'");
-  }
-  if (!["suspend", "delete"].includes(type)) {
-    throw new Error("Type must be 'suspend' or 'delete'");
-  }
-
-  try {
-    const url = cleanUrl(`${API_URL}${id}/approve-action/`);
-    const res = await axios.post(url, { action, type });
-    return res.data;
-  } catch (error) {
-    console.error("❌ Failed to approve/reject action:", {
-      id,
-      action,
-      type,
-      message: error.message,
-      status: error.response?.status,
-      data: error.response?.data,
-    });
+    console.error("Error performing approve action:", error.response?.data || error.message);
     throw error;
   }
 };

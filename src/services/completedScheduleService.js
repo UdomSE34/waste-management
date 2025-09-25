@@ -2,25 +2,63 @@ import axios from "axios";
 
 const API_URL = "/api/completed-waste-records/";
 
-// Get all completed schedules
+// Create Axios instance
+const api = axios.create({
+  baseURL: API_URL,
+  timeout: 10000,
+});
+
+// Attach token to every request
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("authToken");
+    if (token) {
+      config.headers["Authorization"] = `Token ${token}`; // DRF expects "Token <token>"
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// ✅ Get all completed schedules
 export const getCompletedSchedules = async () => {
-  const res = await axios.get(API_URL);
-  return res.data;
+  try {
+    const res = await api.get("/");
+    return res.data;
+  } catch (error) {
+    console.error("Error fetching completed schedules:", error.response?.data || error.message);
+    throw error;
+  }
 };
 
-// Add completed schedule
+// ✅ Add completed schedule
 export const addCompletedSchedule = async (data) => {
-  const res = await axios.post(API_URL, data);
-  return res.data;
+  try {
+    const res = await api.post("/", data);
+    return res.data;
+  } catch (error) {
+    console.error("Error adding completed schedule:", error.response?.data || error.message);
+    throw error;
+  }
 };
 
-// Update completed schedule
+// ✅ Update completed schedule
 export const updateCompletedSchedule = async (id, data) => {
-  const res = await axios.put(`${API_URL}${id}/`, data); // Note the trailing slash if your backend uses DRF
-  return res.data;
+  try {
+    const res = await api.put(`${id}/`, data);
+    return res.data;
+  } catch (error) {
+    console.error(`Error updating completed schedule ${id}:`, error.response?.data || error.message);
+    throw error;
+  }
 };
 
-// Delete completed schedule
+// ✅ Delete completed schedule
 export const deleteCompletedSchedule = async (id) => {
-  await axios.delete(`${API_URL}${id}/`);
+  try {
+    await api.delete(`${id}/`);
+  } catch (error) {
+    console.error(`Error deleting completed schedule ${id}:`, error.response?.data || error.message);
+    throw error;
+  }
 };

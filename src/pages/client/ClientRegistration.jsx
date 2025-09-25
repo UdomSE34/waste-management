@@ -123,7 +123,7 @@ const ClientRegistration = () => {
 
       <div className="registration-card">
         <div className="card-header-client">
-          <h2>Hotel Registration</h2>
+          <h2>Customer Registration</h2>
         </div>
 
         <form onSubmit={handleSubmit} className="registration-form">

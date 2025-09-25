@@ -1,142 +1,91 @@
-import axios from 'axios';
+import axios from "axios";
 
-const API_URL = '/api/salary/';
+// Token-aware Axios instance
+const api = axios.create({
+  baseURL: "/api/salary/",
+  timeout: 10000,
+});
+
+// Attach token automatically
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("authToken");
+    if (token) {
+      config.headers["Authorization"] = `Token ${token}`;
+      config.headers["Content-Type"] = "application/json";
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 // ---------- Salary Endpoints ----------
 export const fetchUsersWithSalaries = async (month, year) => {
-  try {
-    const response = await axios.get(`${API_URL}users-with-salaries/`, {
-      params: { month, year },
-    });
-    return response.data || [];
-  } catch (error) {
-    console.error("Error fetching users with salaries:", error);
-    throw error;
-  }
+  const res = await api.get("users-with-salaries/", { params: { month, year } });
+  return res.data || [];
 };
 
 export const fetchRolePolicies = async () => {
-  try {
-    const response = await axios.get(`${API_URL}role-salary-policies/`);
-    return response.data || [];
-  } catch (error) {
-    console.error("Error fetching role policies:", error);
-    throw error;
-  }
+  const res = await api.get("role-salary-policies/");
+  return res.data || [];
 };
 
 export const calculateMonthlySalaries = async (month, year) => {
-  try {
-    const response = await axios.post(`${API_URL}users-with-salaries/calculate_salaries/`, {
-      month,
-      year,
-    });
-    return response.data;
-  } catch (error) {
-    console.error("Error calculating monthly salaries:", error);
-    throw error;
-  }
+  const res = await api.post("users-with-salaries/calculate_salaries/", { month, year });
+  return res.data;
 };
 
-// Mark salary as Paid / Unpaid
 export const updateSalaryStatus = async (salaryId, status) => {
-  try {
-    // Determine which action to call based on status
-    const action = status === "Paid" ? "mark_paid" : "mark_unpaid";
-
-    const response = await axios.patch(`${API_URL}salaries/${salaryId}/${action}/`);
-    return response.data;
-  } catch (error) {
-    console.error("Error updating salary status:", error);
-    throw error;
-  }
+  const action = status === "Paid" ? "mark_paid" : "mark_unpaid";
+  const res = await api.patch(`salaries/${salaryId}/${action}/`);
+  return res.data;
 };
 
-// Get individual salary
 export const getUserSalary = async (userId, month, year) => {
-  try {
-    const response = await axios.get(`${API_URL}user-salary/${userId}/`, {
-      params: { month, year },
-    });
-    return response.data;
-  } catch (error) {
-    console.error("Error fetching user salary:", error);
-    throw error;
-  }
+  const res = await api.get(`user-salary/${userId}/`, { params: { month, year } });
+  return res.data;
 };
 
-// Update individual salary
 export const updateUserSalary = async (userId, salaryData) => {
-  try {
-    const response = await axios.put(`${API_URL}user-salary/${userId}/`, salaryData);
-    return response.data;
-  } catch (error) {
-    console.error("Error updating user salary:", error);
-    throw error;
-  }
+  const res = await api.put(`user-salary/${userId}/`, salaryData);
+  return res.data;
 };
 
 // ---------- Attendance Endpoints ----------
 export const getAttendanceRecords = async (userId = null, month, year) => {
-  try {
-    const response = await axios.get(`${API_URL}attendance/`, {
-      params: { user: userId, month, year },
-    });
-    return response.data || [];
-  } catch (error) {
-    console.error("Error fetching attendance records:", error);
-    throw error;
-  }
+  const res = await api.get("attendance/", { params: { user: userId, month, year } });
+  return res.data || [];
 };
 
 export const createAttendance = async (attendanceData) => {
-  try {
-    const response = await axios.post(`${API_URL}attendance/`, attendanceData);
-    return response.data;
-  } catch (error) {
-    console.error("Error creating attendance record:", error);
-    throw error;
-  }
+  const res = await api.post("attendance/", attendanceData);
+  return res.data;
 };
 
 export const updateAttendance = async (attendanceId, status, comment = "") => {
-  try {
-    const response = await axios.patch(`${API_URL}attendance/${attendanceId}/`, {
-      status,
-      comment,
-    });
-    return response.data;
-  } catch (error) {
-    console.error("Error updating attendance record:", error);
-    throw error;
-  }
+  const res = await api.patch(`attendance/${attendanceId}/`, { status, comment });
+  return res.data;
+};
+
+export const markEmergencyAttendance = async (attendanceId, type) => {
+  const res = await api.patch(`attendance/${attendanceId}/`, {
+    status: type,
+    comment: "Marked via Emergency button",
+  });
+  return res.data;
 };
 
 export const deleteAttendance = async (attendanceId) => {
-  try {
-    const response = await axios.delete(`${API_URL}attendance/${attendanceId}/`);
-    return response.data;
-  } catch (error) {
-    console.error("Error deleting attendance record:", error);
-    throw error;
-  }
+  const res = await api.delete(`attendance/${attendanceId}/`);
+  return res.data;
 };
 
-// ✅ NEW: Generate monthly attendance for all users (except admins)
 export const generateMonthlyAttendance = async (month, year) => {
-  try {
-    const response = await axios.post(`${API_URL}attendance/generate/`, {
-      month,
-      year,
-    });
-    return response.data;
-  } catch (error) {
-    console.error("Error generating monthly attendance:", error);
-    throw error;
-  }
+  const res = await api.post("attendance/generate/", { month, year });
+  return res.data;
 };
 
-// ---------- Export as default ----------
+// ---------- Export default ----------
 const salaryService = {
   fetchUsersWithSalaries,
   fetchRolePolicies,
@@ -147,8 +96,9 @@ const salaryService = {
   getAttendanceRecords,
   createAttendance,
   updateAttendance,
+  markEmergencyAttendance,
   deleteAttendance,
-  generateMonthlyAttendance, // 👈 added here
+  generateMonthlyAttendance,
 };
 
 export default salaryService;

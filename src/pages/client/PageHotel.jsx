@@ -73,8 +73,10 @@ const PageHotel = () => {
   return (
     <div className="dashboard-hotel-form">
       <div className="dashboard-header">
-        <h1>Hotel Registration</h1>
+        <br />
+        <h1>Customer Registration</h1>
         <p>Register a new hotel for waste management services</p>
+        <br />
       </div>
 
       {/* Progress Steps */}

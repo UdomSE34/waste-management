@@ -281,9 +281,7 @@ const CompletedSchedules = () => {
           rows={completedRecords.map((record) => ({
             Hotel: record.schedule?.hotel_name || "Unknown",
             Day: record.schedule?.day || "-",
-            "Time Range": `${record.schedule?.start_time || "--"} - ${
-              record.schedule?.end_time || "--"
-            }`,
+            "Time Range": record.shedule?.slot || "-",
             "Completion Date": new Date(record.created_at).toLocaleDateString(),
             Details: (
               <button
@@ -509,7 +507,7 @@ const ScheduleSelect = ({
       <option value="">-- Select Schedule --</option>
       {schedules.map((s) => (
         <option key={s.schedule_id} value={s.schedule_id}>
-          {s.hotel_name} - {s.day} ({s.start_time} - {s.end_time})
+          {s.hotel_name} - {s.day} ({s.slot})
         </option>
       ))}
     </select>

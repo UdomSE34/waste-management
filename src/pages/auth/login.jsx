@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "../../css/auth/login.css";
-import axios from "axios";
+import { loginUser } from "../../api/api"; // login helper
 
 const slides = [
   { image: "/images/slide1.jpg", title: "Welcome", desc: "Learn more about our company" },
@@ -9,18 +9,9 @@ const slides = [
   { image: "/images/slide3.jpg", title: "Clients", desc: "Join our growing client base" },
 ];
 
-// Create Axios instance
-const api = axios.create({
-  baseURL: "http://127.0.0.1:8000",
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
-
-const Login = () => {
+export default function Login() {
   const navigate = useNavigate();
   const [slideIndex, setSlideIndex] = useState(0);
-
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -28,15 +19,15 @@ const Login = () => {
   // Slide auto change every 4 seconds
   useEffect(() => {
     const timer = setInterval(() => {
-      setSlideIndex(prev => (prev + 1) % slides.length);
+      setSlideIndex((prev) => (prev + 1) % slides.length);
     }, 4000);
     return () => clearInterval(timer);
   }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    setError(""); // clear previous error on input change
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    setError(""); // clear previous error
   };
 
   const handleSubmit = async (e) => {
@@ -52,27 +43,24 @@ const Login = () => {
     }
 
     try {
-      const response = await api.post("/login/", { email, password });
-      const { user, token } = response.data;
+      const { token, user } = await loginUser(email, password);
 
-      // Save token & user info
-      localStorage.setItem("authToken", token);
-      localStorage.setItem("userRole", user.role);
-      localStorage.setItem("userName", user.name);
-      localStorage.setItem("userId", user.id);
-
-
-      // Role-based navigation
-      if (user.role === "Admin") {
-        navigate("/Admin"); // admin/staff dashboard
-      } else if (user.role === "Staff") {
-        navigate("/Staff"); // workers dashboard
-      } else if (user.role === "client") {
-        navigate("/client/hotel"); // client dashboard
-      } else {
-        navigate("/"); // fallback
+      // Redirect based on role
+      switch (user.role) {
+        case "Admin":
+          navigate("/admin/workers");
+          break;
+        case "Staff":
+          navigate("/staff/dashboard");
+          break;
+        case "client":
+          navigate("/client/hotel");
+          break;
+        default:
+          navigate("/");
       }
     } catch (err) {
+      console.error(err);
       setError(err.response?.data?.detail || "Login failed. Check your credentials.");
     } finally {
       setLoading(false);
@@ -124,17 +112,13 @@ const Login = () => {
                 {loading ? "Logging in..." : "Login"}
               </button>
             </div>
+
             <a href="/register" className="text-blue-600 font-semibold">
-          Don’t have an account? Register
-        </a>
+              Don’t have an account? Register
+            </a>
           </form>
-          
         </div>
-        
       </div>
-      
     </div>
   );
-};
-
-export default Login;
+}

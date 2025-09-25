@@ -3,7 +3,6 @@ import React, { useState, useEffect } from "react";
 import {
   getAttendanceRecords,
   updateAttendance,
-  generateMonthlyAttendance
 } from "../../services/admin/SalaryService";
 import DataTable from "../../components/admin/DataTable";
 import '../../css/admin/SalaryManagement.css';
@@ -16,8 +15,19 @@ const AttendanceDashboard = () => {
   const [selectedDate, setSelectedDate] = useState(today);
   const [usersAttendance, setUsersAttendance] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showGenerateModal, setShowGenerateModal] = useState(false);
-  const [markedStatuses, setMarkedStatuses] = useState({}); // {attendanceId: status}
+
+
+  // For status/comment modal
+  const [showCommentModal, setShowCommentModal] = useState(false);
+  const [selectedAttendance, setSelectedAttendance] = useState(null);
+  const [commentText, setCommentText] = useState("");
+
+  // For emergency modal
+  const [showEmergencyModal, setShowEmergencyModal] = useState(false);
+  const [emergencyStatus, setEmergencyStatus] = useState(""); // Selected emergency status
+
+  // For read-only comment modal (Details column)
+  const [showViewCommentModal, setShowViewCommentModal] = useState(false);
 
   const months = [
     "January", "February", "March", "April", "May", "June",
@@ -28,7 +38,7 @@ const AttendanceDashboard = () => {
     setLoading(true);
     try {
       const data = await getAttendanceRecords(null, selectedMonth, selectedYear);
-      const filtered = data.filter(r => r.date === selectedDate);
+      const filtered = data.filter(r => r.date === selectedDate && r.user_status === "active");
       setUsersAttendance(filtered || []);
     } catch (error) {
       console.error("Error loading attendance:", error);
@@ -41,26 +51,57 @@ const AttendanceDashboard = () => {
     loadAttendance();
   }, [selectedMonth, selectedYear, selectedDate]);
 
-  const handleGenerateAttendance = async () => {
-    try {
-      await generateMonthlyAttendance(selectedMonth, selectedYear);
-      await loadAttendance();
-      setShowGenerateModal(false);
-    } catch (error) {
-      console.error("Error generating attendance:", error);
-    }
+
+  // Open status update modal (with comment input)
+  const handleOpenStatusModal = (attendance, newStatus) => {
+    setSelectedAttendance({ ...attendance, newStatus });
+    setCommentText(attendance.comment || "");
+    setShowCommentModal(true);
   };
 
-  const handleStatusChange = async (attendanceId, newStatus) => {
+  const handleSubmitStatus = async () => {
+    if (!selectedAttendance) return;
     try {
-      const record = usersAttendance.find(r => r.attendance_id === attendanceId);
-      await updateAttendance(attendanceId, newStatus, record.comment);
-      // update marked status immediately
-      setMarkedStatuses(prev => ({ ...prev, [attendanceId]: newStatus }));
+      await updateAttendance(
+        selectedAttendance.attendance_id,
+        selectedAttendance.newStatus || selectedAttendance.status,
+        commentText
+      );
+      setShowCommentModal(false);
+      setSelectedAttendance(null);
+      setCommentText("");
       await loadAttendance();
     } catch (error) {
       console.error("Error updating attendance:", error);
     }
+  };
+
+  // Emergency modal
+  const handleEmergencyClick = (attendance) => {
+    setSelectedAttendance(attendance);
+    setCommentText(""); // optional user input
+    setEmergencyStatus("");
+    setShowEmergencyModal(true);
+  };
+
+  const handleSubmitEmergency = async () => {
+    if (!selectedAttendance || !emergencyStatus) return;
+    try {
+      await updateAttendance(selectedAttendance.attendance_id, emergencyStatus, commentText);
+      setShowEmergencyModal(false);
+      setSelectedAttendance(null);
+      setCommentText("");
+      setEmergencyStatus("");
+      await loadAttendance();
+    } catch (error) {
+      console.error("Error updating emergency attendance:", error);
+    }
+  };
+
+  // View-only comment modal (Details column)
+  const handleViewComment = (attendance) => {
+    setSelectedAttendance(attendance);
+    setShowViewCommentModal(true);
   };
 
   if (loading) return <div className="loading">Loading attendance data...</div>;
@@ -91,86 +132,112 @@ const AttendanceDashboard = () => {
             onChange={(e) => setSelectedDate(e.target.value)}
             className="filter-select"
           />
-          
         </div>
       </div>
 
-<div className="card">
-  <div className="card-header">
-    <h3>Attendance Records</h3>
-    <button
-            className="btn btn-primary"
-            onClick={() => setShowGenerateModal(true)}
-          >
-            Generate Attendance
-          </button>
-  </div>
-  <DataTable
-        columns={['Employee', 'Role', 'Date', 'Status', 'Comment', 'Actions']}
-        rows={usersAttendance.map(record => ({
-          Employee: record.name || "-",
-          Role: record.role || "-",
-          Date: record.date,
-          Status: record.status,
-          Comment: record.comment || "-",
-          Actions: (
-            <div className="flex gap-2">
-              <button
-                className={`btn btn-primary ${record.status === 'present' ? 'active' : ''}`}
-                onClick={() => handleStatusChange(record.attendance_id, 'present')}
-              >
-                {markedStatuses[record.attendance_id] === 'present' ? 'Marked' : 'Present'}
-              </button>
-              <button
-                className={`btn btn-danger ${record.status === 'absent' ? 'active' : ''}`}
-                onClick={() => handleStatusChange(record.attendance_id, 'absent')}
-              >
-                {markedStatuses[record.attendance_id] === 'absent' ? 'Marked' : 'Absent'}
-              </button>
-              <button
-                className={`btn btn-sm ${record.status === 'sick' ? 'active' : ''}`}
-                onClick={() => handleStatusChange(record.attendance_id, 'sick')}
-              >
-                {markedStatuses[record.attendance_id] === 'sick' ? 'Marked' : 'Sick'}
-              </button>
-            </div>
-          )
-        }))}
-      />
-</div>
-      
+      <div className="card">
+        <div className="card-header">
+          <h3>Attendance Records</h3>
+          
+        </div>
 
-      {showGenerateModal && (
+        <DataTable
+          columns={['Employee', 'Role', 'Date', 'Status', 'Details', 'Actions', 'Emergency']}
+          rows={usersAttendance.map(record => ({
+            Employee: record.name || "-",
+            Role: record.role || "-",
+            Date: record.date,
+            Status: record.status,
+            Details: (
+              <button
+                className="btn btn-outline"
+                onClick={() => handleViewComment(record)}
+              >
+                View
+              </button>
+            ),
+            Actions: (
+              <div className="flex gap-2">
+                <button className="btn btn-primary" onClick={() => handleOpenStatusModal(record, 'present')}>Present</button>
+                <button className="btn btn-danger" onClick={() => handleOpenStatusModal(record, 'absent')}>Absent</button>
+                <button className="btn btn-sm" onClick={() => handleOpenStatusModal(record, 'sick')}>Sick</button>
+              </div>
+            ),
+            Emergency: (
+              <button className="btn btn-secondary" onClick={() => handleEmergencyClick(record)}>Emergency</button>
+            )
+          }))}
+        />
+      </div>
+
+      {/* Status Update Modal */}
+      {showCommentModal && (
         <div className="modal">
           <div className="modal-content">
-            <h3>Generate Attendance</h3>
-            <p>
-              Generate attendance for all employees (except Admins) in{" "}
-              {months[selectedMonth - 1]} {selectedYear}?
-            </p>
-            <p className="warning-text">
-              This will insert attendance for each employee with their role.
-              <br />
-              Salary deductions will apply for <b>Absent</b> and more than{" "}
-              <b>2 Sick days</b>.
-            </p>
+            <h3>Update Status: {selectedAttendance?.newStatus}</h3>
+            <div className="form-group">
+<textarea
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              placeholder="Enter comment..."
+            />
+            </div> 
             <div className="modal-actions">
-              <button
-                className="btn btn-secondary"
-                onClick={() => setShowGenerateModal(false)}
-              >
-                Cancel
-              </button>
-              <button
-                className="btn btn-primary"
-                onClick={handleGenerateAttendance}
-              >
-                Generate
-              </button>
+              <button className="btn btn-secondary" onClick={() => setShowCommentModal(false)}>Cancel</button>
+              <button className="btn btn-primary" onClick={handleSubmitStatus}>Save</button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Emergency Modal */}
+      {showEmergencyModal && (
+        <div className="modal">
+          <div className="modal-content">
+            <h3>Emergency Attendance for {selectedAttendance?.name}</h3>
+            <p>Select type and optionally add a comment:</p>
+            <div className="form-group">
+ <select
+              value={emergencyStatus}
+              onChange={(e) => setEmergencyStatus(e.target.value)}
+              className="filter-select"
+            >
+              <option value="">-- Select --</option>
+              <option value="accident">Accident</option>
+              <option value="off">Off</option>
+            </select>
+            </div>
+           <div className="form-group">
+
+           </div>
+            <div className="form-group">
+              <textarea
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                placeholder="Enter comment..."
+              />
+            </div>
+            <div className="modal-actions">
+              <button className="btn btn-secondary" onClick={() => setShowEmergencyModal(false)}>Cancel</button>
+              <button className="btn btn-primary" onClick={handleSubmitEmergency}>Save</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Comment Modal (read-only) */}
+      {showViewCommentModal && (
+        <div className="modal">
+          <div className="modal-content">
+            <h3>Attendance Comment</h3>
+            <p>{selectedAttendance?.comment || "No comment available."}</p>
+            <div className="modal-actions">
+              <button className="btn btn-secondary" onClick={() => setShowViewCommentModal(false)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

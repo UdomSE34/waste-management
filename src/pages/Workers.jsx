@@ -370,8 +370,8 @@ const UserManagement = () => {
                 <label>Relatives Phone</label>
                 <input
                   type="text"
-                  name="emergency_contact_relationship"
-                  value={newUser.emergency_contact_relationship}
+                  name="emergency_contact_phone"
+                  value={newUser.emergency_contact_phone}
                   onChange={handleInputChange}
                 />
               </div>
@@ -519,6 +519,10 @@ const UserManagement = () => {
                 [
                   "Emergency Phone",
                   showUserDetails.emergency_contact_phone || "-",
+                ],
+                [
+                  "Comments",
+                  showUserDetails.finaldelete_comment || "-",
                 ],
                 ["Status", renderStatus(showUserDetails.status)],
               ].map(([label, value]) => (

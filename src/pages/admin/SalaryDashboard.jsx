@@ -8,6 +8,7 @@ import {
 } from "../../services/admin/SalaryService";
 import DataTable from "../../components/admin/DataTable";
 import "../../css/admin/SalaryManagement.css";
+import axios from "axios";
 
 const SalaryDashboard = () => {
   const [users, setUsers] = useState([]);
@@ -19,24 +20,11 @@ const SalaryDashboard = () => {
   const [error, setError] = useState(null);
 
   const months = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
+    "January","February","March","April","May","June",
+    "July","August","September","October","November","December"
   ];
 
-  const years = Array.from(
-    { length: 5 },
-    (_, i) => new Date().getFullYear() - 2 + i
-  );
+  const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i);
 
   useEffect(() => {
     loadData();
@@ -50,7 +38,10 @@ const SalaryDashboard = () => {
         fetchUsersWithSalaries(selectedMonth, selectedYear),
         fetchRolePolicies(),
       ]);
-      setUsers(usersData || []);
+
+      // Filter only active users from API
+      const activeUsers = (usersData || []).filter(u => u.status === "Active" || u.is_active);
+      setUsers(activeUsers);
       setRolePolicies(policiesData || []);
     } catch (err) {
       console.error("Error loading data:", err);
@@ -68,9 +59,7 @@ const SalaryDashboard = () => {
       setShowCalculateModal(false);
     } catch (err) {
       console.error("Error calculating salaries:", err);
-      setError(
-        "Failed to calculate salaries. Please check attendance and policies."
-      );
+      setError("Failed to calculate salaries. Please check attendance and policies.");
     }
   };
 
@@ -78,51 +67,56 @@ const SalaryDashboard = () => {
     if (!salary) return;
     try {
       const newStatus = salary.status === "Paid" ? "Unpaid" : "Paid";
-      const updatedSalary = await updateSalaryStatus(
-        salary.salary_id,
-        newStatus
-      );
-
-      // Option 1: Update state immediately
+      const updatedSalary = await updateSalaryStatus(salary.salary_id, newStatus);
       setUsers((prev) =>
         prev.map((u) =>
-          u.salary?.salary_id === updatedSalary.salary_id
-            ? { ...u, salary: updatedSalary }
-            : u
+          u.salary?.salary_id === updatedSalary.salary_id ? { ...u, salary: updatedSalary } : u
         )
       );
-
-      // Option 2: Reload entire table
-      // await loadData();
     } catch (err) {
       console.error("Error updating salary status:", err);
       setError("Failed to update salary status.");
     }
   };
 
+  // Token-aware Axios instance
+
+  const api = axios.create({
+    baseURL: "/api/salary/",
+    timeout: 10000,
+  });
   
+  // Attach token automatically
+  api.interceptors.request.use(
+    (config) => {
+      const token = localStorage.getItem("authToken");
+      if (token) {
+        config.headers["Authorization"] = `Token ${token}`;
+        config.headers["Content-Type"] = "application/json";
+      }
+      return config;
+    },
+    (error) => Promise.reject(error)
+  );
 
-  const handleExportPDF = () => {
-    window.open("/api/salary/salaries/export_pdf/", "_blank");
-  };
+ const handleExportPDF = async () => {
+  try {
+    const response = await api.get("salaries/export_pdf/", {
+      responseType: "blob", // important for binary
+    });
 
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "salaries.pdf");
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  } catch (err) {
+    console.error("PDF export failed:", err.response?.data || err.message);
+  }
+};
 
-       // Status badge renderer
-  // const renderStatus = (status) => {
-  //   const styles = {
-  //   paid: { label: "Paid", class: "status-paid" },
-  //   unpaid: { label: "Unpaid", class: "status-upaid" },
-      
-  //   };
-
-  //   const config = styles[status] || {
-  //     label: "Unknown",
-  //     class: "status-unknown",
-  //   };
-  //   return (
-  //     <span className={`status-paid ${config.class}`}>{config.label}</span>
-  //   );
-  // }
 
   if (loading) return <div className="loading">Loading salary data...</div>;
 
@@ -137,9 +131,7 @@ const SalaryDashboard = () => {
             className="filter-select"
           >
             {months.map((month, index) => (
-              <option key={index} value={index + 1}>
-                {month}
-              </option>
+              <option key={index} value={index + 1}>{month}</option>
             ))}
           </select>
           <select
@@ -148,14 +140,10 @@ const SalaryDashboard = () => {
             className="filter-select"
           >
             {years.map((year) => (
-              <option key={year} value={year}>
-                {year}
-              </option>
+              <option key={year} value={year}>{year}</option>
             ))}
           </select>
-          <button className="btn btn-primary" onClick={handleExportPDF}>
-            Export Salaries PDF
-          </button>
+          <button className="btn btn-primary" onClick={handleExportPDF}>Export Salaries PDF</button>
         </div>
       </div>
 
@@ -163,64 +151,35 @@ const SalaryDashboard = () => {
 
       <div className="dashboard-cards">
         <div className="card">
-          <div className="card-header">
-            <h3>Total Payroll</h3>
-          </div>
+          <div className="card-header"><h3>Total Payroll</h3></div>
           <h4>
             {users
-              .reduce(
-                (total, user) =>
-                  total + parseFloat(user.salary?.total_salary || 0),
-                0
-              )
-              .toLocaleString("en-US", {
-                style: "currency",
-                currency: "Tsh",
-              })}
+              .reduce((total, user) => total + parseFloat(user.salary?.total_salary || 0), 0)
+              .toLocaleString("en-US", { style: "currency", currency: "Tsh" })}
           </h4>
         </div>
         <div className="card">
-          <div className="card-header">
-            <h3>Employees</h3>
-          </div>
+          <div className="card-header"><h3>Employees</h3></div>
           <h4 className="count">{users.length}</h4>
         </div>
         <div className="card">
-          <div className="card-header">
-            <h3>Average Salary</h3>
-          </div>
-
+          <div className="card-header"><h3>Average Salary</h3></div>
           <h4 className="amount">
             {(
-              users.reduce(
-                (total, user) =>
-                  total + parseFloat(user.salary?.total_salary || 0),
-                0
-              ) / (users.length || 1)
-            ).toLocaleString("en-US", {
-              style: "currency",
-              currency: "Tsh",
-            })}
+              users.reduce((total, user) => total + parseFloat(user.salary?.total_salary || 0), 0) /
+              (users.length || 1)
+            ).toLocaleString("en-US", { style: "currency", currency: "Tsh" })}
           </h4>
         </div>
       </div>
 
       <div className="card">
         <div className="card-header">
-          <h3>
-            Employee Salaries - {months[selectedMonth - 1]} {selectedYear}
-          </h3>
+          <h3>Employee Salaries - {months[selectedMonth - 1]} {selectedYear}</h3>
         </div>
         <DataTable
           columns={[
-            "Name",
-            "Role",
-            "Base Salary",
-            "Bonuses",
-            "Deductions",
-            "Total Salary",
-            "Status",
-            "Actions",
+            "Name","Role","Base Salary","Bonuses","Deductions","Total Salary","Absences","Status","Actions"
           ]}
           rows={users.map((user) => ({
             Name: user.name,
@@ -237,6 +196,7 @@ const SalaryDashboard = () => {
             "Total Salary": user.salary?.total_salary
               ? `$${parseFloat(user.salary.total_salary).toLocaleString()}`
               : "-",
+            Absences: user.absences || 0, // NEW column for number of absent days
             Status: user.salary?.status || "-",
             Actions: user.salary ? (
               <button
@@ -246,9 +206,7 @@ const SalaryDashboard = () => {
                 {user.salary.status === "Paid" ? "Mark Unpaid" : "Mark Paid"}
               </button>
             ) : (
-              <button className="btn btn-outline" disabled>
-                Pending
-              </button>
+              <button className="btn btn-outline" disabled>Pending</button>
             ),
           }))}
         />
@@ -258,26 +216,13 @@ const SalaryDashboard = () => {
         <div className="modal">
           <div className="modal-content">
             <h3>Calculate Salaries</h3>
-            <p>
-              Calculate salaries for {months[selectedMonth - 1]} {selectedYear}?
-            </p>
+            <p>Calculate salaries for {months[selectedMonth - 1]} {selectedYear}?</p>
             <p className="warning-text">
-              This will calculate salaries based on attendance records and role
-              policies.
+              This will calculate salaries based on attendance records and role policies.
             </p>
             <div className="modal-actions">
-              <button
-                className="btn btn-secondary"
-                onClick={() => setShowCalculateModal(false)}
-              >
-                Cancel
-              </button>
-              <button
-                className="btn btn-primary"
-                onClick={handleCalculateSalaries}
-              >
-                Calculate
-              </button>
+              <button className="btn btn-secondary" onClick={() => setShowCalculateModal(false)}>Cancel</button>
+              <button className="btn btn-primary" onClick={handleCalculateSalaries}>Calculate</button>
             </div>
           </div>
         </div>

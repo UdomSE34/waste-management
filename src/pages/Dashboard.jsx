@@ -8,7 +8,7 @@ import {
   createCollection,
   updateCollection,
   deleteCollection,
-} from "../services/ScheduleService";
+} from "../services/DashboardService";
 import { getHotels } from "../services/hotelServices";
 
 const Scheduling = () => {
@@ -49,6 +49,11 @@ const Scheduling = () => {
     "Sunday",
   ];
 
+  const SLOTS = [
+    { value: "06:00 – 12:00", label: "Morning (06:00 – 12:00)" },
+    { value: "06:00 – 18:00", label: "Afternoon (06:00 – 18:00)" },
+  ];
+
   // Fetch collections and hotels
   useEffect(() => {
     const fetchData = async () => {
@@ -70,6 +75,7 @@ const Scheduling = () => {
   }, []);
 
   /** ---------- ADD ---------- **/
+  /** ---------- ADD ---------- **/
   const handleAddInputChange = (e) => {
     const { name, value } = e.target;
     setAddFormData((prev) => ({ ...prev, [name]: value }));
@@ -83,15 +89,14 @@ const Scheduling = () => {
       setAddFormData((prev) => ({ ...prev, collection_frequency: freq }));
 
       if (freq === 7) {
-        setAddSelectedDays(
-          DAYS.map((d) => ({ day: d, start_time: "", end_time: "" }))
-        );
+        // Daily collection → all days with empty slots
+        setAddSelectedDays(DAYS.map((d) => ({ day: d, slot: "" })));
       } else if (freq > 0) {
+        // Limited frequency → allow custom day/slot selection
         setAddSelectedDays(
           Array.from({ length: freq }, () => ({
             day: "",
-            start_time: "",
-            end_time: "",
+            slot: "",
           }))
         );
       } else {
@@ -117,12 +122,11 @@ const Scheduling = () => {
     }
 
     const payload = addSelectedDays
-      .filter((d) => d.day && d.start_time && d.end_time)
+      .filter((d) => d.day && d.slot)
       .map((d) => ({
-        hotel: addFormData.hotel, // ensure hotel_id goes to API
+        hotel: addFormData.hotel,
         day: d.day,
-        start_time: d.start_time,
-        end_time: d.end_time,
+        slot: d.slot,
         status: addFormData.status,
       }));
 
@@ -169,10 +173,10 @@ const Scheduling = () => {
     setEditSelectedDays([
       {
         day: collection.day,
-        start_time: collection.start_time,
-        end_time: collection.end_time,
+        slot: collection.slot || "", // use slot instead of start/end time
       },
     ]);
+
     setShowEditModal(true);
   };
 
@@ -254,7 +258,9 @@ const Scheduling = () => {
         <div className="card">
           <div className="card-header">
             <h3>Total Hotels</h3>
-            <span><i class="bi bi-house-door"></i></span>
+            <span>
+              <i class="bi bi-house-door"></i>
+            </span>
           </div>
           <h4>{hotels.length}</h4>
         </div>
@@ -262,7 +268,9 @@ const Scheduling = () => {
         <div className="card">
           <div className="card-header">
             <h3>Total Requests</h3>
-            <span><i class="bi bi-clipboard-data"></i></span>
+            <span>
+              <i class="bi bi-clipboard-data"></i>
+            </span>
           </div>
           <h4>{collections.length}</h4>
           <p>
@@ -288,10 +296,10 @@ const Scheduling = () => {
         </div>
 
         <DataTable
-          columns={["Day", "Time Range", "Hotel", "Status", "Action"]}
+          columns={["Day", "Slot", "Hotel", "Status", "Action"]}
           rows={collections.map((item) => ({
             Day: item.day,
-            "Time Range": `${item.start_time} - ${item.end_time}`,
+            Slot: item.slot || "N/A", // show slot instead of start_time/end_time
             Hotel: item.hotel_name,
             Status: item.status,
             Action: (
@@ -367,16 +375,16 @@ const Scheduling = () => {
                   <option value="Pending">Pending</option>
                   <option value="In Progress">In Progress</option>
                   <option value="Completed">Completed</option>
-                  <option value="Delayed">Delayed</option>
                 </select>
               </div>
 
-              {/* Days & Times */}
+              {/* Days & Slots */}
               {addSelectedDays.length > 0 && (
                 <div className="form-group">
-                  <label>Select Days & Times</label>
+                  <label>Select Days & Slots</label>
                   {addSelectedDays.map((d, idx) => (
-                    <div key={idx} className="day-time-selection">
+                    <div key={idx} className="day-slot-selection">
+                      {/* Day dropdown */}
                       <select
                         className="form-control"
                         value={d.day}
@@ -392,33 +400,23 @@ const Scheduling = () => {
                           </option>
                         ))}
                       </select>
-                      <input
-                        type="time"
+
+                      {/* Slot dropdown */}
+                      <select
                         className="form-control"
-                        value={d.start_time}
+                        value={d.slot || ""}
                         onChange={(e) =>
-                          handleAddDayTimeChange(
-                            idx,
-                            "start_time",
-                            e.target.value
-                          )
+                          handleAddDayTimeChange(idx, "slot", e.target.value)
                         }
                         required
-                      />
-                      <span>to</span>
-                      <input
-                        type="time"
-                        className="form-control"
-                        value={d.end_time}
-                        onChange={(e) =>
-                          handleAddDayTimeChange(
-                            idx,
-                            "end_time",
-                            e.target.value
-                          )
-                        }
-                        required
-                      />
+                      >
+                        <option value="">-- Select Slot --</option>
+                        {SLOTS.map((slot) => (
+                          <option key={slot.value} value={slot.value}>
+                            {slot.label}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   ))}
                 </div>
@@ -483,12 +481,13 @@ const Scheduling = () => {
                 </select>
               </div>
 
-              {/* Days & Times */}
+              {/* Days & Slot */}
               {editSelectedDays.length > 0 && (
                 <div className="form-group">
-                  <label>Select Days & Times</label>
+                  <label>Select Day & Slot</label>
                   {editSelectedDays.map((d, idx) => (
-                    <div key={idx} className="day-time-selection">
+                    <div key={idx} className="day-slot-selection">
+                      {/* Day select */}
                       <select
                         className="form-control"
                         value={d.day}
@@ -505,25 +504,21 @@ const Scheduling = () => {
                         ))}
                       </select>
 
-                      <input
-                        type="time"
+                      {/* Slot select */}
+                      <select
                         className="form-control"
-                        value={d.start_time}
+                        value={d.slot || ""}
                         onChange={(e) =>
-                          handleEditDayTimeChange(idx, "start_time", e.target.value)
+                          handleEditDayTimeChange(idx, "slot", e.target.value)
                         }
                         required
-                      />
-                      <span>to</span>
-                      <input
-                        type="time"
-                        className="form-control"
-                        value={d.end_time}
-                        onChange={(e) =>
-                          handleEditDayTimeChange(idx, "end_time", e.target.value)
-                        }
-                        required
-                      />
+                      >
+                        <option value="">-- Select Slot --</option>
+                        <option value="06:00 – 12:00">Morning (06:00 – 12:00)</option>
+                        <option value="06:00 – 18:00">
+                          Afternoon (06:00 – 18:00)
+                        </option>
+                      </select>
                     </div>
                   ))}
                 </div>

@@ -30,22 +30,29 @@ const PaidHotels = () => {
   }, []);
 
   // Toggle hotel payment status
-  const handleToggleStatus = async (id, currentStatus) => {
-    if (!window.confirm(`Change status of this hotel?`)) return;
-    try {
-      const updated =
-        currentStatus === "Paid"
-          ? await markHotelAsUnpaid(id)
-          : await markHotelAsPaid(id);
+const handleToggleStatus = async (id, currentStatus) => {
+  if (!window.confirm(`Change status of this hotel?`)) return;
+  try {
+    setLoading(true); // optional: show loading state
+    const updated =
+      currentStatus === "Paid"
+        ? await markHotelAsUnpaid(id)
+        : await markHotelAsPaid(id);
 
-      setHotels((prev) =>
-        prev.map((h) => (h.paid_hotel_id === id ? updated : h))
-      );
-    } catch (err) {
-      console.error("Failed to update status:", err);
-      alert("Status update failed.");
+    setHotels((prev) =>
+      prev.map((h) => (h.paid_hotel_id === id ? updated : h))
+    );
+
+    if (currentStatus !== "Paid") {
+      alert("Hotel marked as Paid. Notifications sent to customer.");
     }
-  };
+  } catch (err) {
+    console.error("Failed to update status:", err);
+    alert("Status update failed.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Export PDF
   const handleExport = async () => {
