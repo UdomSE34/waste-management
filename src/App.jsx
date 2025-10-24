@@ -40,7 +40,7 @@ import ClientScheduling from "./pages/client/ClientScheduling";
 import PaymentSlips from "./pages/client/PaymentSlip";
 
 // Auth Pages
-import Login from "./pages/auth/Login";
+import Login from "./pages/auth/Login.jsx";
 
 // PrivateRoute for session control
 import PrivateRoute from "./components/PrivateRoute";
