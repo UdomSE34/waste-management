@@ -7,7 +7,7 @@ import {
   updateScheduleVisibility,
   sendTodayMessage,
   sendTomorrowMessage,
-} from "../services/scheduleService";
+} from "../services/ScheduleService";
 import { getHotels } from "../services/hotelServices";
 
 const Scheduling = () => {
