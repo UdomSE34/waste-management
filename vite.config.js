@@ -14,6 +14,10 @@ export default defineConfig({
         secure: false,
       },
     },
+<<<<<<< HEAD
     allowedHosts: ['front.deploy.tz'],
   }
+=======
+    allowedHosts: ['front.deploy.tz'],}
+>>>>>>> d0d51596ace93a6de2f21987009b86296a84c8b5
 })
