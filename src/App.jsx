@@ -1,49 +1,49 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 
 // Layouts
-import StaffLayout from "./layouts/StaffLayout.jsx";
-import ClientLayout from "./layouts/ClientLayout.jsx";
-import AdminLayout from "./layouts/AdminLayouts.jsx";
+import StaffLayout from "./layouts/StaffLayout";
+import ClientLayout from "./layouts/ClientLayout";
+import AdminLayout from "./layouts/AdminLayouts";
 
 // Admin Pages
-import AdminWorkers from "./pages/admin/AdminWorkers.jsx";
-import SalaryDashboard from "./pages/admin/SalaryDashboard.jsx";
-import SalaryPolicies from "./pages/admin/SalaryPolices.jsx";
-import AttendanceDashboard from "./pages/admin/AttendanceDashboard.jsx";
-import PaidHotels from "./pages/admin/PaidHotels.jsx";
-import DeletedWorkers from "./pages/admin/DeletedWorkers.jsx";
-import AdminMessaging from "./pages/admin/AdminMessaging.jsx";
-import AdminPaymentSlips from "./components/admin/AdminPaymentSlips.jsx";
-import MonthlySummaryDashboard from "./pages/admin/MonthlySummaryPage.jsx";
+import AdminWorkers from "./pages/admin/AdminWorkers";
+import SalaryDashboard from "./pages/admin/SalaryDashboard";
+import SalaryPolicies from "./pages/admin/SalaryPolices";
+import AttendanceDashboard from "./pages/admin/AttendanceDashboard";
+import PaidHotels from "./pages/admin/PaidHotels";
+import DeletedWorkers from "./pages/admin/DeletedWorkers";
+import AdminMessaging from "./pages/admin/AdminMessaging";
+import AdminPaymentSlips from "./components/admin/AdminPaymentSlips";
+import MonthlySummaryDashboard from "./pages/admin/MonthlySummaryPage";
 
 // Staff Pages
-import Dashboard from "./pages/Dashboard.jsx";
-import Requests from "./pages/Requests.jsx";
-import Scheduling from "./pages/Scheduling.jsx";
-import Workers from "./pages/Workers.jsx";
-import Hotels from "./pages/Hotels.jsx";
-import CollectionsRoutes from "./pages/CollectionsRoutes.jsx";
-import Analytics from "./pages/Analytics.jsx";
-import CompletedSchedule from "./pages/CompletedSchedule.jsx";
-import PendingHotels from "./pages/PendingPage.jsx";
-import IncompleteSchedule from "./pages/IncompleteSchedule.jsx";
-import UserNotifications from "./pages/UserNotifications.jsx";
-import StaffMessaging from "./pages/StaffMessaging.jsx";
+import Dashboard from "./pages/Dashboard";
+import Requests from "./pages/Requests";
+import Scheduling from "./pages/Scheduling";
+import Workers from "./pages/Workers";
+import Hotels from "./pages/Hotels";
+import CollectionsRoutes from "./pages/CollectionsRoutes";
+import Analytics from "./pages/Analytics";
+import CompletedSchedule from "./pages/CompletedSchedule";
+import PendingHotels from "./pages/PendingPage";
+import IncompleteSchedule from "./pages/IncompleteSchedule";
+import UserNotifications from "./pages/UserNotifications";
+import StaffMessaging from "./pages/StaffMessaging";
 
 
 
 // Client Pages
-import PageHotel from "./pages/client/PageHotel.jsx";
-import ClientRegistration from "./pages/client/ClientRegistration.jsx";
-import ClientPendingHotels from "./pages/client/ClientPendingHotels.jsx";
-import ClientScheduling from "./pages/client/ClientScheduling.jsx";
-import PaymentSlips from "./pages/client/PaymentSlip.jsx";
+import PageHotel from "./pages/client/PageHotel";
+import ClientRegistration from "./pages/client/ClientRegistration";
+import ClientPendingHotels from "./pages/client/ClientPendingHotels";
+import ClientScheduling from "./pages/client/ClientScheduling";
+import PaymentSlips from "./pages/client/PaymentSlip";
 
 // Auth Pages
-import Login from "./pages/auth/Login.jsx";
+import Login from "./pages/auth/login";
 
 // PrivateRoute for session control
-import PrivateRoute from "./components/PrivateRoute.jsx";
+import PrivateRoute from "./components/PrivateRoute";
 
 // CSS
 import "./css/styles.css";
