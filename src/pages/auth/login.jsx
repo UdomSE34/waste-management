@@ -3,10 +3,15 @@ import { useNavigate } from "react-router-dom";
 import "../../css/auth/login.css";
 import { loginUser } from "../../api/api"; // login helper
 
+import img1 from "../../image/1.jpg";
+import img2 from "../../image/2.jpg";
+import img3 from "../../image/3.jpg";
+
+
 const slides = [
-  { image: "/images/slide1.jpg", title: "Welcome", desc: "Learn more about our company" },
-  { image: "/images/slide2.jpg", title: "Services", desc: "We offer top-notch solutions" },
-  { image: "/images/slide3.jpg", title: "Clients", desc: "Join our growing client base" },
+  { image: img1, title: "Welcome", desc: "Learn more about our company" },
+  { image: img2, title: "Services", desc: "We offer top-notch solutions" },
+  { image: img3, title: "Clients", desc: "Join our growing client base" },
 ];
 
 export default function Login() {
@@ -15,6 +20,7 @@ export default function Login() {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [lockTime, setLockTime] = useState(0); // seconds remaining if account is locked
 
   // Slide auto change every 4 seconds
   useEffect(() => {
@@ -24,6 +30,17 @@ export default function Login() {
     return () => clearInterval(timer);
   }, []);
 
+  // Lock countdown timer
+  useEffect(() => {
+    let timer;
+    if (lockTime > 0) {
+      timer = setInterval(() => {
+        setLockTime(prev => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [lockTime]);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -32,6 +49,7 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (lockTime > 0) return; // prevent login while locked
     setLoading(true);
     setError("");
 
@@ -44,6 +62,9 @@ export default function Login() {
 
     try {
       const { token, user } = await loginUser(email, password);
+
+      // Store token
+      localStorage.setItem("authToken", token);
 
       // Redirect based on role
       switch (user.role) {
@@ -61,7 +82,19 @@ export default function Login() {
       }
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.detail || "Login failed. Check your credentials.");
+
+      const msg = err.response?.data?.detail || "Login failed. Check your credentials.";
+      setError(msg);
+
+      // Parse lockout duration from backend message
+      if (msg.toLowerCase().includes("locked")) {
+        const minutesMatch = msg.match(/(\d+)\sminutes?/);
+        if (minutesMatch) {
+          setLockTime(parseInt(minutesMatch[1], 10) * 60); // convert minutes → seconds
+        } else {
+          setLockTime(600); // fallback 10 minutes
+        }
+      }
     } finally {
       setLoading(false);
     }
@@ -92,6 +125,7 @@ export default function Login() {
                 onChange={handleInputChange}
                 placeholder="Enter your email"
                 required
+                disabled={lockTime > 0}
               />
             </div>
 
@@ -104,12 +138,17 @@ export default function Login() {
                 onChange={handleInputChange}
                 placeholder="Enter your password"
                 required
+                disabled={lockTime > 0}
               />
             </div>
 
             <div className="form-actions">
-              <button type="submit" className="btn btn-primary" disabled={loading}>
-                {loading ? "Logging in..." : "Login"}
+              <button type="submit" className="btn btn-primary" disabled={loading || lockTime > 0}>
+                {lockTime > 0
+                  ? `Locked (${Math.floor(lockTime / 60)}:${lockTime % 60 < 10 ? "0" : ""}${lockTime % 60})`
+                  : loading
+                  ? "Logging in..."
+                  : "Login"}
               </button>
             </div>
 

@@ -12,7 +12,7 @@ export default function Sidebar() {
     { to: "/staff/incomplete-schedules", icon: "bi-bar-chart-line", label: "Incomplete Schedules" },
     { to: "/staff/completed-schedules", icon: "bi-check2-circle", label: "Completed Schedules" },
     { to: "/staff/user-notifications", icon: "bi-bell", label: "User Notifications" },
-    // { to: "/staff/admin-messaging", icon: "bi-chat-dots", label: "Messaging" },
+    // { to: "/staff/staff-messaging", icon: "bi-chat-dots", label: "Messaging" },
   ];
 
   return (

@@ -12,8 +12,9 @@ import SalaryPolicies from "./pages/admin/SalaryPolices";
 import AttendanceDashboard from "./pages/admin/AttendanceDashboard";
 import PaidHotels from "./pages/admin/PaidHotels";
 import DeletedWorkers from "./pages/admin/DeletedWorkers";
-import AdminStaffMessaging from "./pages/admin/AdminStaffMessaging";
+import AdminMessaging from "./pages/admin/AdminMessaging";
 import AdminPaymentSlips from "./components/admin/AdminPaymentSlips";
+import MonthlySummaryDashboard from "./pages/admin/MonthlySummaryPage";
 
 // Staff Pages
 import Dashboard from "./pages/Dashboard";
@@ -27,7 +28,7 @@ import CompletedSchedule from "./pages/CompletedSchedule";
 import PendingHotels from "./pages/PendingPage";
 import IncompleteSchedule from "./pages/IncompleteSchedule";
 import UserNotifications from "./pages/UserNotifications";
-import AdminMessaging from "./pages/AdminStaffMessaging";
+import StaffMessaging from "./pages/StaffMessaging";
 
 
 
@@ -79,7 +80,7 @@ export default function App() {
           <Route path="pending-hotels" element={<PendingHotels />} />
           <Route path="incomplete-schedules" element={<IncompleteSchedule />} />
           <Route path="user-notifications" element={<UserNotifications />} />
-          <Route path="admin-messaging" element={<AdminStaffMessaging />} />
+          <Route path="staff-messaging" element={<StaffMessaging />} />
           
           <Route path="*" element={<Navigate to="/staff" />} />
         </Route>
@@ -96,6 +97,7 @@ export default function App() {
           <Route path="deleted-workers" element={<DeletedWorkers />} />
           <Route path="admin-messaging" element={<AdminMessaging />} />
           <Route path="payment-slips" element={<AdminPaymentSlips />} />
+          <Route path="monthly-summary" element={<MonthlySummaryDashboard />} />
           <Route path="*" element={<Navigate to="/admin/workers" />} />
         </Route>
       </Route>

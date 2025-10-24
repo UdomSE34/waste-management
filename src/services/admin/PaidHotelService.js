@@ -46,3 +46,9 @@ export const exportPaidHotels = async (format = "pdf") => {
   });
   return response;
 };
+
+// ✅ Delete a PaidHotelInfo record
+export const deletePaidHotel = async (id) => {
+  const res = await api.delete(`${id}/`);
+  return res.data;
+};

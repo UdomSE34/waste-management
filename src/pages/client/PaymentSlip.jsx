@@ -13,9 +13,13 @@ const PaymentSlips = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [btnLoading, setBtnLoading] = useState(false);
+
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [btnLoading, setBtnLoading] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+
+  const [activeSlip, setActiveSlip] = useState(null);
 
   const [newSlip, setNewSlip] = useState({
     client: "",
@@ -40,7 +44,7 @@ const PaymentSlips = () => {
     setSuccess("");
   };
 
-  // Pre-fill client ID and redirect if not logged in
+  // Pre-fill client ID
   useEffect(() => {
     const clientId = localStorage.getItem("userId");
     if (!clientId) {
@@ -61,9 +65,9 @@ const PaymentSlips = () => {
     setLoading(true);
     try {
       const clientId = localStorage.getItem("userId");
-      const data = await fetchPaymentSlips(); // fetch all slips
+      const data = await fetchPaymentSlips();
       const clientSlips = Array.isArray(data)
-        ? data.filter((s) => s.client === clientId)
+        ? data.filter((s) => String(s.client) === String(clientId))
         : [];
       setSlips(clientSlips);
     } catch (err) {
@@ -83,8 +87,7 @@ const PaymentSlips = () => {
     try {
       const formData = new FormData();
       let formattedMonth = newSlip.month_paid;
-      if (formattedMonth && formattedMonth.length === 7)
-        formattedMonth = `${formattedMonth}-01`;
+      if (formattedMonth?.length === 7) formattedMonth = `${formattedMonth}-01`;
 
       formData.append("client", newSlip.client);
       formData.append("month_paid", formattedMonth);
@@ -121,8 +124,7 @@ const PaymentSlips = () => {
     try {
       const formData = new FormData();
       let formattedMonth = editSlip.month_paid;
-      if (formattedMonth && formattedMonth.length === 7)
-        formattedMonth = `${formattedMonth}-01`;
+      if (formattedMonth?.length === 7) formattedMonth = `${formattedMonth}-01`;
 
       formData.append("month_paid", formattedMonth);
       formData.append("status", editSlip.status);
@@ -149,34 +151,29 @@ const PaymentSlips = () => {
     }
   };
 
-  // Handle input changes
   const handleInputChange = (e, isEdit = false) => {
     const { name, value, files } = e.target;
-    if (isEdit) {
-      setEditSlip((prev) => ({ ...prev, [name]: name === "file" ? files[0] : value }));
-    } else {
-      setNewSlip((prev) => ({ ...prev, [name]: name === "file" ? files[0] : value }));
+    const val = name === "file" ? files[0] : value;
+    if (isEdit) setEditSlip((prev) => ({ ...prev, [name]: val }));
+    else setNewSlip((prev) => ({ ...prev, [name]: val }));
+  };
+
+  // View files securely
+  const handleViewFile = async (fileUrl) => {
+    if (!fileUrl) return;
+    try {
+      const token = localStorage.getItem("authToken");
+      const res = await fetch(fileUrl, { headers: { Authorization: `Token ${token}` } });
+      if (!res.ok) throw new Error("Failed to fetch file");
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, "_blank");
+    } catch (err) {
+      console.error("Error opening file:", err);
+      alert("Failed to open file.");
     }
   };
 
-  // View Slip PDF/Image
-  const handleViewSlip = (fileUrl) => {
-    const token = localStorage.getItem("authToken");
-    if (!fileUrl) return;
-
-    fetch(fileUrl, { headers: { Authorization: `Token ${token}` } })
-      .then((res) => res.blob())
-      .then((blob) => {
-        const url = window.URL.createObjectURL(blob);
-        window.open(url, "_blank");
-      })
-      .catch((err) => {
-        console.error("❌ Error opening slip:", err);
-        setError("");
-      });
-  };
-
-  // Delete Slip
   const handleDeleteSlip = async (slipId) => {
     if (!window.confirm("Are you sure you want to delete this slip?")) return;
     try {
@@ -189,7 +186,6 @@ const PaymentSlips = () => {
     }
   };
 
-  // Open Edit Modal
   const openEditModal = (slip) => {
     setEditSlip({
       slip_id: slip.slip_id,
@@ -199,6 +195,11 @@ const PaymentSlips = () => {
       file: null,
     });
     setShowEditModal(true);
+  };
+
+  const openDetailsModal = (slip) => {
+    setActiveSlip(slip);
+    setShowDetailsModal(true);
   };
 
   return (
@@ -220,12 +221,23 @@ const PaymentSlips = () => {
           <div className="loading-indicator">Loading payment slips...</div>
         ) : (
           <DataTable
-            columns={["Month", "Paid For", "Comment", "File", "Actions"]}
+            columns={["Month", "Paid For", "File", "Receipt", "Comment", "Actions"]}
             rows={slips.map((s) => ({
               Month: s.month_paid || "-",
               "Paid For": s.status === "current" ? "Current Month" : "Previous Month",
-              Comment: s.comment || "-",
-              File: <button className="btn btn-sm" onClick={() => handleViewSlip(s.file)}>View</button>,
+              File: (
+                <button className="btn btn-outline" onClick={() => handleViewFile(s.file)}>View Slip</button>
+              ),
+              Receipt: s.receipt ? (
+                <button className="btn btn-outline" onClick={() => handleViewFile(s.receipt)}>View Receipt</button>
+              ) : (
+                <i style={{ color: "#999" }}>No receipt</i>
+              ),
+              Comment: (
+                <button className="btn btn-sm btn-outline" onClick={() => openDetailsModal(s)}>
+                  View Details
+                </button>
+              ),
               Actions: (
                 <>
                   <button className="btn btn-outline" onClick={() => openEditModal(s)}>Edit</button>
@@ -304,6 +316,36 @@ const PaymentSlips = () => {
           </div>
         </div>
       )}
+
+      {/* Details Modal */}
+      {showDetailsModal && activeSlip && (
+        <div className="modal">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h3>Slip Details</h3>
+              <button className="btn-close" onClick={() => setShowDetailsModal(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              <p><strong>Month:</strong> {activeSlip.month_paid}</p>
+              <p><strong>Paid For:</strong> {activeSlip.status === "current" ? "Current Month" : "Previous Month"}</p>
+              <p><strong>Your Comment:</strong></p>
+              <div className="comment-box">{activeSlip.comment || "No comment"}</div>
+              <p><strong>Admin Comment:</strong></p>
+              <div className="comment-box">{activeSlip.admin_comment || "No admin comment yet"}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        .modal { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.5);
+          display:flex; justify-content:center; align-items:center; z-index:1000; padding:20px; }
+        .modal-content { background:#fff; border-radius:10px; padding:20px; max-width:600px; width:100%; position:relative; }
+        .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; }
+        .modal-body { display:flex; flex-direction:column; gap:10px; }
+        .btn-close { background:none; border:none; font-size:1.3rem; cursor:pointer; }
+        .comment-box { background:#f9f9f9; border:1px solid #ddd; padding:10px; border-radius:6px; white-space:pre-wrap; }
+      `}</style>
     </div>
   );
 };

@@ -3,6 +3,10 @@ import { useNavigate } from "react-router-dom";
 import "../../css/client/clientRegistration.css";
 import { registerClient } from "../../services/client/clientService";
 
+import img6 from "../../image/6.jpg";
+import img7 from "../../image/7.jpg";
+import img8 from "../../image/8.jpg";
+
 const ClientRegistration = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -18,23 +22,26 @@ const ClientRegistration = () => {
   const [success, setSuccess] = useState("");
   const [slideIndex, setSlideIndex] = useState(0);
 
-  const slides = [
-    {
-      image: "/images/slide1.jpg",
-      title: "Welcome to Our Company",
-      desc: "We provide top-notch services for your business growth.",
-    },
-    {
-      image: "/images/slide2.jpg",
-      title: "Reliable Support",
-      desc: "Our team is here to support you 24/7.",
-    },
-    {
-      image: "/images/slide3.jpg",
-      title: "Innovative Solutions",
-      desc: "We offer innovative solutions tailored to your needs.",
-    },
-  ];
+
+
+const slides = [
+  {
+    image: img6,
+    title: "Welcome to Our Company",
+    desc: "We provide top-notch services for your business growth.",
+  },
+  {
+    image: img7,
+    title: "Reliable Support",
+    desc: "Our team is here to support you 24/7.",
+  },
+  {
+    image: img8,
+    title: "Innovative Solutions",
+    desc: "We offer innovative solutions tailored to your needs.",
+  },
+];
+
 
   // Auto-slide every 5 seconds
   useEffect(() => {

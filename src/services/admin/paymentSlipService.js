@@ -1,14 +1,12 @@
-
 import axios from "axios";
 
-const API_URL = "/api/payment-slips/";
-
+// Create Axios instance
 export const api = axios.create({
-  baseURL: API_URL,
+  baseURL: "/api", // Django API base URL
   timeout: 10000,
 });
 
-// Attach token automatically
+// Automatically attach auth token
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("authToken");
@@ -20,17 +18,28 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Fetch payment slips (optional month filter)
+// ---------------- API METHODS ----------------
+
+// Fetch all payment slips (optionally filtered by month)
 export const fetchPaymentSlips = async (month = "") => {
-  try {
-    let url = "";
-    if (month) {
-      url = `?month=${month}`; // backend should filter by month if query param is provided
-    }
-    const res = await api.get(url);
-    return Array.isArray(res.data) ? res.data : res.data.results || [];
-  } catch (error) {
-    console.error("❌ Error fetching payment slips:", error);
-    throw error;
-  }
+  const params = month ? { month } : {};
+  const res = await api.get("/payment-slips/", { params });
+  return Array.isArray(res.data) ? res.data : res.data.results || [];
+};
+
+// ✅ Unified update function: amount, receipt, and admin comment
+export const updatePaymentSlip = async (slipId, { amount, receiptFile, adminComment }) => {
+  const formData = new FormData();
+
+  if (amount !== undefined) formData.append("amount", amount);
+  if (receiptFile) formData.append("receipt", receiptFile);
+  if (adminComment !== undefined) formData.append("admin_comment", adminComment);
+
+  const { data } = await api.patch(`/payment-slips/${slipId}/`, formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+
+  return data;
 };
