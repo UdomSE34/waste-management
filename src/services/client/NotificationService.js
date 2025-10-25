@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE = "http://127.0.0.1:8000/api/notifications/";
+const API_BASE = "https://back.deploy.tz/api/notifications/";
 
 // Axios instance with dynamic token
 const api = axios.create({
