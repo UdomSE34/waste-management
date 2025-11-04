@@ -3,6 +3,7 @@ import axios from "axios";
 // Base API client pointing to /api/
 const api = axios.create({
   baseURL: "https://back.deploy.tz/api",
+  // baseURL: "http://127.0.0.1:8000/api",
   timeout: 10000,
 });
 

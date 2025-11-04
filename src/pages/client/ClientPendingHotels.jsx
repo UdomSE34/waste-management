@@ -64,7 +64,7 @@ const ClientPendingHotels = () => {
   // Fetch all users (Staff/Admin) for recipient dropdown
   const fetchUsers = async () => {
     try {
-      const response = await axios.get("http://127.0.0.1:8000/api/users/");
+      const response = await axios.get("https://back.deploy.tz/api/users/");
       setUsers(Array.isArray(response.data) ? response.data : []);
     } catch (err) {
       console.error("Error fetching users:", err);

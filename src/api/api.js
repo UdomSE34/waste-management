@@ -4,7 +4,9 @@ import axios from "axios";
 // Create Axios instance
 const api = axios.create({
   // baseURL: "http://127.0.0.1:8000",
-  baseURL: "https://back.deploy.tz/api/",
+  baseURL: "https://back.deploy.tz",
+
+  
   headers: { "Content-Type": "application/json" },
 });
 
@@ -29,6 +31,7 @@ export async function loginUser(email, password) {
   localStorage.setItem("userId", user.id);
   localStorage.setItem("userEmail", user.email);
 
+  console.log(token);
   return { token, user };
 }
 

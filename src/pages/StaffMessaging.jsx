@@ -3,7 +3,7 @@ import { NotificationService } from "../services/NotificationService";
 import axios from "axios";
 
 // Authenticated axios instance for users/clients
-const api = axios.create({ baseURL: "http://127.0.0.1:8000/api/" });
+const api = axios.create({ baseURL: "https://back.deploy.tz/api/" });
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("authToken");

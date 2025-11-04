@@ -339,7 +339,7 @@ const PaymentSlips = () => {
 
       <style>{`
         .modal { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.5);
-          display:flex; justify-content:center; align-items:center; z-index:1000; padding:20px; }
+        display:flex; justify-content:center; align-items:center; z-index:1000; padding:20px; }
         .modal-content { background:#fff; border-radius:10px; padding:20px; max-width:600px; width:100%; position:relative; }
         .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; }
         .modal-body { display:flex; flex-direction:column; gap:10px; }

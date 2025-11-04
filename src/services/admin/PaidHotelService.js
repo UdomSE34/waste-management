@@ -1,7 +1,9 @@
 // src/services/admin/PaidHotelService.js
 import axios from "axios";
 
-const API_URL = "http://127.0.0.1:8000/api/paid-hotels/";
+// const API_URL = "http://127.0.0.1:8000/api/paid-hotels/";
+const API_URL = "https://back.deploy.tz/api/paid-hotels/";
+
 
 // Create axios instance with auth
 const api = axios.create({
