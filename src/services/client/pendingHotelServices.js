@@ -10,7 +10,7 @@ export const getPendingHotels = async () => {
 
   try {
     const response = await axios.get(
-      "https://back.deploy.tz/api/pending-hotels/",
+      "http://127.0.0.1:8000/api/pending-hotels/",
       {
         headers: {
           Authorization: `Token ${token}`,

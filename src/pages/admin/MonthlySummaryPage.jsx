@@ -2,9 +2,10 @@ import { useState, useEffect } from "react";
 import DataTable from "../../components/admin/DataTable";
 import {
   fetchMonthlySummaries,
+  generateMonthlySummary,
   updateMonthlySummary,
-  addMonthlySummary,
-  generateMonthlySummaries,
+  downloadWasteReport,
+  downloadPaymentReport,
 } from "../../services/admin/monthlySummaryService";
 
 const MonthlySummaryDashboard = () => {
@@ -13,18 +14,13 @@ const MonthlySummaryDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // --- Edit Modal State ---
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [currentSummary, setCurrentSummary] = useState(null);
-  const [newProcessedWaste, setNewProcessedWaste] = useState("");
-  const [newProcessedPayment, setNewProcessedPayment] = useState("");
-
-  // --- Add Modal State ---
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [addClientId, setAddClientId] = useState("");
-  const [addMonth, setAddMonth] = useState("");
-  const [addWaste, setAddWaste] = useState("");
-  const [addPayment, setAddPayment] = useState("");
+  // Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingSummary, setEditingSummary] = useState(null);
+  const [processedWaste, setProcessedWaste] = useState(0);
+  const [processedPayment, setProcessedPayment] = useState(0);
+  const [wasteReportFile, setWasteReportFile] = useState(null);
+  const [paymentReportFile, setPaymentReportFile] = useState(null);
 
   // Load current month on mount
   useEffect(() => {
@@ -33,18 +29,14 @@ const MonthlySummaryDashboard = () => {
     loadSummaries(currentMonth);
   }, []);
 
-  // --- Load Summaries with Auto-Generation ---
   const loadSummaries = async (month) => {
     if (!month) return;
     setLoading(true);
     setError("");
     try {
-      // Auto-generate summaries first
-      await generateMonthlySummaries(month);
-
-      // Fetch summaries after generation
+      const generated = await generateMonthlySummary(month);
       const data = await fetchMonthlySummaries(month);
-      setSummaries(data);
+      setSummaries(data.length ? data : generated ? [generated] : []);
     } catch (err) {
       console.error("Failed to load monthly summaries:", err);
       setError("Failed to load summaries. Check console for details.");
@@ -59,195 +51,270 @@ const MonthlySummaryDashboard = () => {
     await loadSummaries(month);
   };
 
-  // --- Edit Summary ---
   const openEditModal = (summary) => {
-    setCurrentSummary(summary);
-    setNewProcessedWaste(summary.processed_waste || 0);
-    setNewProcessedPayment(summary.processed_payment || 0);
-    setShowEditModal(true);
+    setEditingSummary(summary);
+    setProcessedWaste(summary.total_processed_waste || 0);
+    setProcessedPayment(summary.total_processed_payment || 0);
+    setWasteReportFile(null);
+    setPaymentReportFile(null);
+    setIsModalOpen(true);
   };
 
-  const handleUpdate = async () => {
+  const handleSave = async () => {
+    if (!editingSummary) return;
+    setLoading(true);
+    setError("");
     try {
-      const payload = {
-        total_waste_litres: parseFloat(newProcessedWaste),
-        total_amount_paid: parseFloat(newProcessedPayment),
-      };
-      const updated = await updateMonthlySummary(currentSummary.summary_id, payload);
+      // Use FormData for file uploads
+      const formData = new FormData();
+      formData.append("total_processed_waste", processedWaste);
+      formData.append("total_processed_payment", processedPayment);
+      if (wasteReportFile)
+        formData.append("processed_waste_report", wasteReportFile);
+      if (paymentReportFile)
+        formData.append("processed_payment_report", paymentReportFile);
 
-      // Update local state
-      setSummaries((prev) =>
-        prev.map((s) =>
-          s.summary_id === updated.summary_id
-            ? {
-                ...s,
-                processed_waste: updated.total_waste_litres,
-                processed_payment: updated.total_amount_paid,
-              }
-            : s
-        )
+      const updated = await updateMonthlySummary(
+        editingSummary.summary_id,
+        formData,
+        true
       );
-      setShowEditModal(false);
+
+      setSummaries((prev) =>
+        prev.map((s) => (s.summary_id === updated.summary_id ? updated : s))
+      );
+      setIsModalOpen(false);
     } catch (err) {
       console.error("Failed to update summary:", err);
-      alert("Failed to update summary");
+      setError("Failed to update summary. Check console for details.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  // --- Add Summary Manually ---
-  const handleAddSummary = async () => {
-    try {
-      const payload = {
-        client: addClientId,
-        month: addMonth,
-        total_waste_litres: parseFloat(addWaste),
-        total_amount_paid: parseFloat(addPayment),
-      };
-      const newSummary = await addMonthlySummary(payload);
-
-      setSummaries((prev) => [newSummary, ...prev]);
-      setShowAddModal(false);
-      setAddClientId("");
-      setAddMonth("");
-      setAddWaste("");
-      setAddPayment("");
-    } catch (err) {
-      console.error("Failed to add summary:", err);
-      alert("Failed to add summary");
-    }
-  };
-
-  // --- Dashboard Totals ---
-  const totalActualWaste = summaries.reduce((acc, s) => acc + (s.actual_waste || 0), 0);
-  const totalProcessedWaste = summaries.reduce((acc, s) => acc + (s.processed_waste || 0), 0);
-  const totalActualPayment = summaries.reduce((acc, s) => acc + (s.actual_payment || 0), 0);
-  const totalProcessedPayment = summaries.reduce((acc, s) => acc + (s.processed_payment || 0), 0);
+  // Dashboard totals
+  const totalActualWaste = summaries.reduce(
+    (acc, s) => acc + (s.total_actual_waste || 0),
+    0
+  );
+  const totalProcessedWaste = summaries.reduce(
+    (acc, s) => acc + (s.total_processed_waste || 0),
+    0
+  );
+  const totalActualPayment = summaries.reduce(
+    (acc, s) => acc + Number(s.total_actual_payment || 0),
+    0
+  );
+  const totalProcessedPayment = summaries.reduce(
+    (acc, s) => acc + Number(s.total_processed_payment || 0),
+    0
+  );
 
   return (
     <div className="content">
-      <h2>Monthly Hotel Summary Dashboard</h2>
+      <div className="page-header">
+        <h2>Monthly Summary Dashboard</h2>
+        <div style={{ marginBottom: "1rem", display: "flex", gap: "1rem" }}>
+          <button
+            className="btn btn-outline"
+            onClick={() => downloadWasteReport(selectedMonth)}
+            disabled={!selectedMonth || loading}
+          >
+            Download Waste Report (PDF)
+          </button>
+          <button
+            className="btn btn-outline"
+            onClick={() => downloadPaymentReport(selectedMonth)}
+            disabled={!selectedMonth || loading}
+          >
+            Download Payment Report (PDF)
+          </button>
+        </div>
+      </div>
 
       {error && <div className="alert alert-danger">{error}</div>}
 
-      {/* Filter & Add */}
-      <div style={{ marginBottom: "1rem", display: "flex", alignItems: "center" }}>
-        <label style={{ marginRight: "0.5rem" }}>Filter by Month:</label>
-        <input
-          type="month"
-          value={selectedMonth}
-          onChange={handleMonthChange}
-          disabled={loading}
-        />
-        <button
-          className="btn btn-primary"
-          onClick={() => setShowAddModal(true)}
-          style={{ marginLeft: "1rem" }}
-          disabled={loading}
-        >
-          Add Summary
-        </button>
-      </div>
-
       {/* Dashboard Cards */}
-      <div className="dashboard-cards" style={{ display: "flex", gap: "1rem", marginBottom: "1rem" }}>
+      <div
+        className="dashboard-cards"
+        style={{ display: "flex", gap: "1rem", marginBottom: "1rem" }}
+      >
         <div className="card">
-          <div className="card-header"><h3>Actual Waste (L)</h3></div>
-          <h4>{totalActualWaste.toFixed(2)} L</h4>
+          <div className="card-header">
+            <h3>Actual Waste (kg)</h3>
+          </div>
+          <h4>{totalActualWaste.toLocaleString()}</h4>
         </div>
         <div className="card">
-          <div className="card-header"><h3>Processed Waste (L)</h3></div>
-          <h4>{totalProcessedWaste.toFixed(2)} L</h4>
+          <div className="card-header">
+            <h3>Processed Waste (kg)</h3>
+          </div>
+          <h4>{totalProcessedWaste.toLocaleString()}</h4>
         </div>
         <div className="card">
-          <div className="card-header"><h3>Actual Payments</h3></div>
-          <h4>${totalActualPayment.toFixed(2)}</h4>
+          <div className="card-header">
+            <h3>Actual Payments</h3>
+          </div>
+          <h4>{totalActualPayment.toLocaleString()}Tsh</h4>
         </div>
         <div className="card">
-          <div className="card-header"><h3>Processed Payments</h3></div>
-          <h4>${totalProcessedPayment.toFixed(2)}</h4>
+          <div className="card-header">
+            <h3>Processed Payments</h3>
+          </div>
+          <h4>{totalProcessedPayment.toLocaleString()}Tsh</h4>
         </div>
       </div>
 
       {/* Data Table */}
-      <DataTable
-        columns={["Hotel Name", "Actual Waste (L)", "Processed Waste (L)", "Actual Payment", "Processed Payment", "Actions"]}
-        rows={summaries.map((s) => ({
-          "Hotel Name": s.hotel_name,
-          "Actual Waste (L)": (s.actual_waste || 0).toFixed(2),
-          "Processed Waste (L)": (s.processed_waste || 0).toFixed(2),
-          "Actual Payment": `$${(s.actual_payment || 0).toFixed(2)}`,
-          "Processed Payment": `$${(s.processed_payment || 0).toFixed(2)}`,
-          "Actions": (
-            <button
-              className="btn btn-warning btn-sm"
-              onClick={() => openEditModal(s)}
-              disabled={loading}
-            >
-              Edit
-            </button>
-          ),
-        }))}
-      />
-
-      {/* Edit Modal */}
-      {showEditModal && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <h3>Edit Processed Summary</h3>
-            <p>Hotel: {currentSummary.hotel_name}</p>
-            <input
-              type="number"
-              value={newProcessedWaste}
-              onChange={(e) => setNewProcessedWaste(e.target.value)}
-              placeholder="Processed Waste (L)"
-            />
-            <input
-              type="number"
-              value={newProcessedPayment}
-              onChange={(e) => setNewProcessedPayment(e.target.value)}
-              placeholder="Processed Payment"
-            />
-            <div style={{ marginTop: "1rem" }}>
-              <button className="btn btn-primary" onClick={handleUpdate}>Save</button>
-              <button className="btn btn-secondary" onClick={() => setShowEditModal(false)} style={{ marginLeft: "0.5rem" }}>Cancel</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Add Modal */}
-      {showAddModal && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <h3>Add Monthly Summary</h3>
-            <input
-              type="text"
-              value={addClientId}
-              onChange={(e) => setAddClientId(e.target.value)}
-              placeholder="Client ID"
-            />
+      <div className="card">
+        <div className="card-header">
+          <h3>Monthly Summaries</h3>
+          <div
+            style={{
+              marginBottom: "1rem",
+              display: "flex",
+              alignItems: "center",
+            }}
+          >
+            <label style={{ marginRight: "0.5rem" }}>Filter by Month:</label>
             <input
               type="month"
-              value={addMonth}
-              onChange={(e) => setAddMonth(e.target.value)}
-              placeholder="Month"
+              className="filter-select"
+              value={selectedMonth}
+              onChange={handleMonthChange}
+              disabled={loading}
             />
-            <input
-              type="number"
-              value={addWaste}
-              onChange={(e) => setAddWaste(e.target.value)}
-              placeholder="Total Waste (L)"
-            />
-            <input
-              type="number"
-              value={addPayment}
-              onChange={(e) => setAddPayment(e.target.value)}
-              placeholder="Total Payment"
-            />
-            <div style={{ marginTop: "1rem" }}>
-              <button className="btn btn-primary" onClick={handleAddSummary}>Add</button>
-              <button className="btn btn-secondary" onClick={() => setShowAddModal(false)} style={{ marginLeft: "0.5rem" }}>Cancel</button>
+          </div>
+        </div>
+        <DataTable
+          columns={[
+            "Month",
+            "Actual Waste (kg)",
+            "Processed Waste (kg)",
+            "Actual Payment",
+            "Processed Payment",
+            "Actions",
+          ]}
+          rows={summaries.map((s) => ({
+            Month: new Date(s.month).toLocaleString("default", {
+              month: "short",
+              year: "numeric",
+            }),
+            "Actual Waste (kg)": (
+              s.total_actual_waste || 0
+            ).toLocaleString(),
+            "Processed Waste (kg)": (
+              s.total_processed_waste || 0
+            ).toLocaleString(),
+            "Actual Payment": `${(
+              s.total_actual_payment || 0
+            ).toLocaleString()}Tsh`,
+            "Processed Payment": `${(
+              s.total_processed_payment || 0
+            ).toLocaleString()}Tsh`,
+            Actions: (
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                
+                {s.processed_waste_report && (
+                  <button
+                    className="btn btn-outline"
+                    onClick={() =>
+                      window.open(s.processed_waste_report, "_blank")
+                    }
+                  >
+                  Waste
+                  </button>
+                )}
+                {s.processed_payment_report && (
+                  <button
+                    className="btn btn-outline"
+                    onClick={() =>
+                      window.open(s.processed_payment_report, "_blank")
+                    }
+                  >
+                  Payment
+                  </button>
+                )}
+                <button
+                  className="btn btn-primary"
+                  onClick={() => openEditModal(s)}
+                >
+                  Edit
+                </button>
+              </div>
+            ),
+          }))}
+        />
+      </div>
+
+      {/* Edit Modal */}
+      {isModalOpen && (
+        <div className="modal">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h3>Edit Processed Data</h3>
             </div>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSave();
+              }}
+            >
+              <div className="form-group">
+                <label>Processed Waste (kg)</label>
+                <input
+                  type="number"
+                  value={processedWaste}
+                  onChange={(e) => setProcessedWaste(Number(e.target.value))}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Processed Payment ($)</label>
+                <input
+                  type="number"
+                  value={processedPayment}
+                  onChange={(e) => setProcessedPayment(Number(e.target.value))}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Upload Waste Report (PDF)</label>
+                <input
+                  type="file"
+                  accept="application/pdf"
+                  onChange={(e) =>
+                    setWasteReportFile(e.target.files[0] || null)
+                  }
+                />
+              </div>
+              <div className="form-group">
+                <label>Upload Payment Report (PDF)</label>
+                <input
+                  type="file"
+                  accept="application/pdf"
+                  onChange={(e) =>
+                    setPaymentReportFile(e.target.files[0] || null)
+                  }
+                />
+              </div>
+              <div className="form-actions">
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => setIsModalOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={loading}
+                >
+                  {loading ? "Saving..." : "Save"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

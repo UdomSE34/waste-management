@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'https://back.deploy.tz/api/schedules'; // full backend URL
-// const API_BASE_URL = 'http://127.0.0.1:8000/api/schedules'; // full backend URL
+// const API_BASE_URL = 'https://back.deploy.tz/api/schedules'; // full backend URL
+const API_BASE_URL = 'http://127.0.0.1:8000/api/schedules'; // full backend URL
 
 const api = axios.create({
   baseURL: API_BASE_URL,

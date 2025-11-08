@@ -149,7 +149,7 @@ button[type="submit"]:hover {
   background: linear-gradient(135deg, #0080a8 0%, #0096aa 100%);
 }
 
-.success-message {
+.success-message-client {
   text-align: center;
   padding: 50px;
   background: linear-gradient(135deg, #0096C7 0%, #48cae4 100%);
@@ -159,19 +159,19 @@ button[type="submit"]:hover {
   max-width: 600px;
 }
 
-.success-message h2 {
+.success-message-client h2 {
   font-size: 1.8rem;
   margin-bottom: 15px;
   font-weight: 500;
 }
 
-.success-message p {
+.success-message-client p {
   font-size: 1.1rem;
   line-height: 1.6;
   margin-bottom: 25px;
 }
 
-.success-message button {
+.success-message-client button {
   padding: 12px 30px;
   background: white;
   color: #0096C7;
@@ -182,7 +182,7 @@ button[type="submit"]:hover {
   transition: all 0.3s ease;
 }
 
-.success-message button:hover {
+.success-message-clientd button:hover {
   transform: translateY(-2px);
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }

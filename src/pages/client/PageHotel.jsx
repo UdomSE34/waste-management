@@ -44,25 +44,25 @@ const PageHotel = () => {
   const nextStep = () => setCurrentStep((prev) => prev + 1);
   const prevStep = () => setCurrentStep((prev) => prev - 1);
 
- const handleHotelSubmit = async (e) => {
-  e.preventDefault();
+  const handleHotelSubmit = async (e) => {
+    e.preventDefault();
 
-  try {
-    await hotelService.createPendingHotel(newHotel); // POST data
-    setSubmitted(true);
-    setNewHotel(initialHotelState);
-    setCurrentStep(1);
-  } catch (error) {
-    console.error("Error submitting hotel info:", error.response || error);
-    alert(
-      error.response?.data?.detail ||
-        "Failed to submit hotel information. Please try again."
-    );
-  }
-};
+    try {
+      await hotelService.createPendingHotel(newHotel); // POST data
+      setSubmitted(true);
+      setNewHotel(initialHotelState);
+      setCurrentStep(1);
+    } catch (error) {
+      console.error("Error submitting hotel info:", error.response || error);
+      alert(
+        error.response?.data?.detail ||
+          "Failed to submit hotel information. Please try again."
+      );
+    }
+  };
   if (submitted) {
     return (
-      <div className="success-message dashboard-success">
+      <div className="success-message-client">
         <h2>Hotel Information Submitted Successfully!</h2>
         <p>Your hotel details have been saved to our system.</p>
         <button onClick={() => setSubmitted(false)}>Add Another Hotel</button>
@@ -266,10 +266,22 @@ const PageHotel = () => {
                   required
                 >
                   <option value="">Select Currency</option>
+                  <option value="">Select Currency</option>
                   <option value="USD">USD ($)</option>
                   <option value="EUR">EUR (€)</option>
+                  <option value="GBP">GBP (£)</option>
                   <option value="TZS">TZS (TSh)</option>
                   <option value="KES">KES (KSh)</option>
+                  <option value="UGX">UGX (USh)</option>
+                  <option value="ZAR">ZAR (R)</option>
+                  <option value="AUD">AUD (A$)</option>
+                  <option value="CAD">CAD (C$)</option>
+                  <option value="JPY">JPY (¥)</option>
+                  <option value="INR">INR (₹)</option>
+                  <option value="CHF">CHF (Fr)</option>
+                  <option value="CNY">CNY (¥)</option>
+                  <option value="SGD">SGD (S$)</option>
+                  <option value="NZD">NZD (NZ$)</option>
                 </select>
               </div>
 
@@ -294,7 +306,7 @@ const PageHotel = () => {
                 ← Previous
               </button>
               <button type="submit" className="btn-submit">
-                Save Hotel Information
+                Save Information
               </button>
             </div>
           </div>

@@ -1,8 +1,8 @@
 import axios from "axios";
 
 // Base API URL
-// const API_URL = "http://127.0.0.1:8000/api/clients/";
-const API_URL = "https://back.deploy.tz/api/clients/";
+const API_URL = "http://127.0.0.1:8000/api/clients/";
+// const API_URL = "https://back.deploy.tz/api/clients/";
 
 // Create Axios instance
 const api = axios.create({

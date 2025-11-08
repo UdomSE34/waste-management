@@ -39,6 +39,9 @@ import ClientPendingHotels from "./pages/client/ClientPendingHotels";
 import ClientScheduling from "./pages/client/ClientScheduling";
 import PaymentSlips from "./pages/client/PaymentSlip";
 
+// Public Municipul
+import PublicDashboard from "./pages/public/PublicDashboard";
+
 // Auth Pages
 import Login from "./pages/auth/login";
 
@@ -54,6 +57,8 @@ export default function App() {
       {/* Public Routes */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<ClientRegistration />} />
+      
+      
 
       {/* Client Protected Routes */}
       <Route element={<PrivateRoute allowedRoles={["client"]} />}>
@@ -104,6 +109,7 @@ export default function App() {
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/login" />} />
+      <Route path="/public" element={<PublicDashboard />} />
     </Routes>
   );
 }

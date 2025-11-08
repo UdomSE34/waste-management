@@ -185,7 +185,7 @@ const AdminPaymentSlips = () => {
 
               return {
                 "Hotel Name": getHotelName(slip.client),
-                Month: formatDate(slip.month_paid),
+                Month: formatDate(slip.month_paid + 1),
                 Amount: `Tsh ${Number(slip.amount ?? 0).toLocaleString()}`,
                 Status: <span className={`status-badge ${slip.status === "current" ? "current" : "past"}`}>{slip.status || "Unknown"}</span>,
                 File: slipFile ? <button className="btn  btn-outline" onClick={() => handleViewFile(slipFile)}> Slip</button> : <i style={{ color: "#999" }}>No file</i>,
