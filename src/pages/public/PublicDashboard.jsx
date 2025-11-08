@@ -11,8 +11,8 @@ import {
   FaDownload,
   FaEye,
   FaTimes,
-  FaHome,
-} from "react-icons/fa6";
+  FaHome, 
+} from "react-icons/fa";
 import {
   BarChart,
   Bar,
