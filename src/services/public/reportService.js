@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:8000/api/public'; // Public endpoints
+// const API_URL = 'http://localhost:8000/api/public'; // Public endpoints
+const API_URL = 'https://back.deploy.tz/api/public'; // Public endpoints
+
 
 // -----------------------------
 // Fetch all hotels

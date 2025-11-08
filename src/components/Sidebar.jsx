@@ -5,7 +5,7 @@ export default function Sidebar() {
   const links = [
     { to: "/staff", icon: "bi-speedometer2", label: "Dashboard" },
     { to: "/staff/scheduling", icon: "bi-calendar-event", label: "Scheduling" },
-    { to: "/staff/routes", icon: "bi-truck", label: "Collection Routes" },
+    // { to: "/staff/routes", icon: "bi-truck", label: "Collection Routes" },
     { to: "/staff/workers", icon: "bi-people", label: "Worker Management" },
     { to: "/staff/hotels", icon: "bi-building", label: "Hotel Clients" },
     { to: "/staff/pending-hotels", icon: "bi-building", label: "Pending Hotels" },

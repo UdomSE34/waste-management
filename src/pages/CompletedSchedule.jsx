@@ -280,8 +280,8 @@ const CompletedSchedules = () => {
           ]}
           rows={completedRecords.map((record) => ({
             Hotel: record.schedule?.hotel_name || "Unknown",
-            Day: record.schedule?.day || "-",
-            "Time Range": record.shedule?.slot || "-",
+            Day: record.schedule?.day|| "-",
+            "Time Range": record.schedule?.slot || "-",
             "Completion Date": new Date(record.created_at).toLocaleDateString(),
             Details: (
               <button
