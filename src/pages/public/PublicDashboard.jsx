@@ -1,19 +1,5 @@
 import React, { useState, useEffect } from "react";
 import {
-  FaTrashAlt,
-  FaBuilding,
-  FaMoneyBillWave,
-  FaChartBar,
-  FaFilePdf,
-  FaFileWord,
-  FaFileExcel,
-  FaFileAlt,
-  FaDownload,
-  FaEye,
-  FaTimes,
-  FaHome,
-} from "react-icons/fa";
-import {
   BarChart,
   Bar,
   XAxis,
@@ -117,15 +103,15 @@ const PublicDashboard = () => {
   const getFileIcon = (type) => {
     switch (type) {
       case "pdf":
-        return <FaFilePdf className="file-icon pdf" />;
+        return <i className="bi bi-file-earmark-pdf file-icon pdf"></i>;
       case "doc":
       case "docx":
-        return <FaFileWord className="file-icon doc" />;
+        return <i className="bi bi-file-earmark-word file-icon doc"></i>;
       case "xlsx":
       case "xls":
-        return <FaFileExcel className="file-icon xlsx" />;
+        return <i className="bi bi-file-earmark-excel file-icon xlsx"></i>;
       default:
-        return <FaFileAlt className="file-icon" />;
+        return <i className="bi bi-file-earmark file-icon"></i>;
     }
   };
 
@@ -142,7 +128,7 @@ const PublicDashboard = () => {
       <div className="stats-cards">
         <div className="card stat-card">
           <div className="stat-icon blue">
-            <FaTrashAlt />
+            <i className="bi bi-trash3"></i>
           </div>
           <div className="stat-info">
             <h3>{monthlySummary.totalKg.toLocaleString()} kg</h3>
@@ -152,7 +138,7 @@ const PublicDashboard = () => {
 
         <div className="card stat-card">
           <div className="stat-icon green">
-            <FaMoneyBillWave />
+            <i className="bi bi-cash-coin"></i>
           </div>
           <div className="stat-info">
             <h3>TZS {monthlySummary.totalPayments.toLocaleString()}</h3>
@@ -162,7 +148,7 @@ const PublicDashboard = () => {
 
         <div className="card stat-card">
           <div className="stat-icon orange">
-            <FaBuilding />
+            <i className="bi bi-building"></i>
           </div>
           <div className="stat-info">
             <h3>{hotels.length}</h3>
@@ -203,44 +189,6 @@ const PublicDashboard = () => {
             <Bar dataKey="payment" fill="#28a745" name="Payments (TZS)" />
           </BarChart>
         </ResponsiveContainer>
-      </div>
-
-      <div className="card">
-        <h3>
-          Our Customers Summary -{" "}
-          {new Date(selectedMonth + "-02").toLocaleString("default", {
-            month: "long",
-          })}
-        </h3>
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Customer Name</th>
-              <th>Address</th>
-              <th>Contact</th>
-              <th>Hadhi</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {hotels.slice(0, 5).map((hotel) => (
-              <tr key={hotel.id}>
-                <td>{hotel.name}</td>
-                <td>{hotel.address || "N/A"}</td>
-                <td>{hotel.contact_phone || "N/A"}</td>
-                <td>{hotel.hadhi || "N/A"}</td>
-                <td>
-                  <span className={`status ${hotel.status || ""}`}>
-                    {hotel.status
-                      ? hotel.status.charAt(0).toUpperCase() +
-                        hotel.status.slice(1)
-                      : "N/A"}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
       </div>
     </>
   );
@@ -290,20 +238,20 @@ const PublicDashboard = () => {
               </div>
               <div className="document-actions">
                 <button className="btn-view" onClick={() => openDocument(doc)}>
-                  <FaEye /> View
+                  <i className="bi bi-eye"></i> View
                 </button>
                 <button
                   className="btn-download"
                   onClick={() => downloadDocument(doc.url)}
                 >
-                  <FaDownload /> Download
+                  <i className="bi bi-download"></i> Download
                 </button>
               </div>
             </div>
           ))
         ) : (
           <div className="no-documents">
-            <FaFileAlt />
+            <i className="bi bi-file-earmark"></i>
             <p>No documents found matching your criteria.</p>
           </div>
         )}
@@ -315,7 +263,7 @@ const PublicDashboard = () => {
             <div className="modal-header">
               <h3>{selectedDocument.name}</h3>
               <button className="close-btn" onClick={closeDocument}>
-                <FaTimes />
+                <i className="bi bi-x-circle"></i>
               </button>
             </div>
             <div className="modal-body">
@@ -329,15 +277,24 @@ const PublicDashboard = () => {
                   className="btn-download-large"
                   onClick={() => downloadDocument(selectedDocument.url)}
                 >
-                  <FaDownload /> Download File
+                  <i className="bi bi-download"></i> Download File
                 </button>
               </div>
               <div className="document-details">
                 <h4>Document Details</h4>
-                <p><strong>Type:</strong> {selectedDocument.type}</p>
-                <p><strong>Category:</strong> {selectedDocument.category}</p>
-                <p><strong>Uploaded:</strong> {formatDate(selectedDocument.uploadDate)}</p>
-                <p><strong>Size:</strong> {selectedDocument.size}</p>
+                <p>
+                  <strong>Type:</strong> {selectedDocument.type}
+                </p>
+                <p>
+                  <strong>Category:</strong> {selectedDocument.category}
+                </p>
+                <p>
+                  <strong>Uploaded:</strong>{" "}
+                  {formatDate(selectedDocument.uploadDate)}
+                </p>
+                <p>
+                  <strong>Size:</strong> {selectedDocument.size}
+                </p>
               </div>
             </div>
           </div>
@@ -385,7 +342,7 @@ const PublicDashboard = () => {
     <div className="dashboard">
       <div className="sidebar-public">
         <div className="logo-public">
-          <FaTrashAlt />
+          <i className="bi bi-trash3"></i>
           <h1>ForsterInvestment</h1>
         </div>
 
@@ -397,9 +354,9 @@ const PublicDashboard = () => {
             }`}
             onClick={() => setActiveMenu(menu)}
           >
-            {menu === "dashboard" && <FaHome />}
-            {menu === "documents" && <FaFileAlt />}
-            {menu === "customers" && <FaBuilding />}
+            {menu === "dashboard" && <i className="bi bi-house-door"></i>}
+            {menu === "documents" && <i className="bi bi-file-earmark"></i>}
+            {menu === "customers" && <i className="bi bi-building"></i>}
             <span>{menu.charAt(0).toUpperCase() + menu.slice(1)}</span>
           </div>
         ))}
