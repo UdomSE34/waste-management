@@ -12,7 +12,7 @@ import {
   FaEye,
   FaTimes,
   FaHome,
-} from "react-icons/fa";
+} from "react-icons/fa6";
 import {
   BarChart,
   Bar,
