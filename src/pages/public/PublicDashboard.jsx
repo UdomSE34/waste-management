@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from "react";
 import {
-  FaTrashAlt,
-  FaHotel,
-  FaMoneyBillWave,
-  FaWeightHanging,
-  FaFilePdf,
-  FaFileWord,
-  FaFileExcel,
-  FaFileAlt,
-  FaDownload,
-  FaEye,
-  FaTimes,
-  FaHome, 
-} from "react-icons/fa";
+  Trash,
+  Building,
+  CurrencyDollar,
+  BarChartLine,
+  FileEarmarkPdf,
+  FileEarmarkWord,
+  FileEarmarkExcel,
+  FileEarmarkText,
+  Download,
+  Eye,
+  X,
+  House
+} from 'react-bootstrap-icons';
 import {
   BarChart,
   Bar,
@@ -77,7 +77,7 @@ const PublicDashboard = () => {
         );
         setMonthlySummary({ totalKg, totalPayments });
 
-        const months = Array.from({ length: 12}, (_, i) => {
+        const months = Array.from({ length: 12 }, (_, i) => {
           const date = new Date(new Date().getFullYear(), i, 1);
           const monthLabel = date.toLocaleString("default", { month: "short" });
           const monthData = data.find(
@@ -117,15 +117,15 @@ const PublicDashboard = () => {
   const getFileIcon = (type) => {
     switch (type) {
       case "pdf":
-        return <FaFilePdf className="file-icon pdf" />;
+        return <FileEarmarkPdf className="file-icon pdf" />;
       case "doc":
       case "docx":
-        return <FaFileWord className="file-icon doc" />;
+        return <FileEarmarkWord className="file-icon doc" />;
       case "xlsx":
       case "xls":
-        return <FaFileExcel className="file-icon xlsx" />;
+        return <FileEarmarkExcel className="file-icon xlsx" />;
       default:
-        return <FaFileAlt className="file-icon" />;
+        return <FileEarmarkText className="file-icon" />;
     }
   };
 
@@ -142,7 +142,7 @@ const PublicDashboard = () => {
       <div className="stats-cards">
         <div className="card stat-card">
           <div className="stat-icon blue">
-            <FaWeightHanging />
+            <Trash />
           </div>
           <div className="stat-info">
             <h3>{monthlySummary.totalKg.toLocaleString()} kg</h3>
@@ -151,7 +151,7 @@ const PublicDashboard = () => {
         </div>
         <div className="card stat-card">
           <div className="stat-icon green">
-            <FaMoneyBillWave />
+            <CurrencyDollar />
           </div>
           <div className="stat-info">
             <h3>TZS {monthlySummary.totalPayments.toLocaleString()}</h3>
@@ -160,7 +160,7 @@ const PublicDashboard = () => {
         </div>
         <div className="card stat-card">
           <div className="stat-icon orange">
-            <FaHotel />
+            <Building />
           </div>
           <div className="stat-info">
             <h3>{hotels.length}</h3>
@@ -179,7 +179,7 @@ const PublicDashboard = () => {
             >
               {Array.from({ length: 12 }, (_, i) => {
                 const date = new Date(new Date().getFullYear(), i, 1);
-                const monthValue = date.toISOString().slice(0, 7) ;
+                const monthValue = date.toISOString().slice(0, 7);
                 return (
                   <option key={i} value={monthValue}>
                     {date.toLocaleString("default", { month: "long" })}
@@ -288,26 +288,26 @@ const PublicDashboard = () => {
               </div>
               <div className="document-actions">
                 <button className="btn-view" onClick={() => openDocument(doc)}>
-                  <FaEye /> View
+                  <Eye /> View
                 </button>
                 <button
                   className="btn-download"
                   onClick={() => downloadDocument(doc.url)}
                 >
-                  <FaDownload /> Download
+                  <Download /> Download
                 </button>
               </div>
             </div>
           ))
         ) : (
           <div className="no-documents">
-            <FaFileAlt />
+            <FileEarmarkText />
             <p>No documents found matching your criteria</p>
           </div>
         )}
       </div>
 
-      {/* 🔹 Document Modal */}
+      {/* Document Modal */}
       {selectedDocument && (
         <div className="document-modal" onClick={closeDocument}>
           <div
@@ -317,7 +317,7 @@ const PublicDashboard = () => {
             <div className="modal-header">
               <h3>{selectedDocument.name}</h3>
               <button className="close-btn" onClick={closeDocument}>
-                <FaTimes />
+                <X />
               </button>
             </div>
             <div className="modal-body">
@@ -331,7 +331,7 @@ const PublicDashboard = () => {
                   className="btn-download-large"
                   onClick={() => downloadDocument(selectedDocument.url)}
                 >
-                  <FaDownload /> Download File
+                  <Download /> Download File
                 </button>
               </div>
               <div className="document-details">
@@ -387,7 +387,7 @@ const PublicDashboard = () => {
     <div className="dashboard">
       <div className="sidebar-public">
         <div className="logo-public">
-          <FaTrashAlt />
+          <Trash />
           <h1>ForsterInvestment</h1>
         </div>
         {["dashboard", "documents", "customers"].map((menu) => (
@@ -399,9 +399,9 @@ const PublicDashboard = () => {
             onClick={() => setActiveMenu(menu)}
           >
             {{
-              dashboard: <FaHome />,
-              documents: <FaFileAlt />,
-              customers: <FaHotel />,
+              dashboard: <House />,
+              documents: <FileEarmarkText />,
+              customers: <Building />,
             }[menu]}
             <span>{menu.charAt(0).toUpperCase() + menu.slice(1)}</span>
           </div>
