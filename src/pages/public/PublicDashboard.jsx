@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from "react";
 import {
-  Trash,
-  Building,
-  CurrencyDollar,
-  BarChartLine,
-  FileEarmarkPdf,
-  FileEarmarkWord,
-  FileEarmarkExcel,
-  FileEarmarkText,
-  Download,
-  Eye,
-  X,
-  House
-} from 'react-bootstrap-icons';
+  FaTrashAlt,
+  FaBuilding,
+  FaMoneyBillWave,
+  FaChartBar,
+  FaFilePdf,
+  FaFileWord,
+  FaFileExcel,
+  FaFileAlt,
+  FaDownload,
+  FaEye,
+  FaTimes,
+  FaHome,
+} from "react-icons/fa";
 import {
   BarChart,
   Bar,
@@ -117,15 +117,15 @@ const PublicDashboard = () => {
   const getFileIcon = (type) => {
     switch (type) {
       case "pdf":
-        return <FileEarmarkPdf className="file-icon pdf" />;
+        return <FaFilePdf className="file-icon pdf" />;
       case "doc":
       case "docx":
-        return <FileEarmarkWord className="file-icon doc" />;
+        return <FaFileWord className="file-icon doc" />;
       case "xlsx":
       case "xls":
-        return <FileEarmarkExcel className="file-icon xlsx" />;
+        return <FaFileExcel className="file-icon xlsx" />;
       default:
-        return <FileEarmarkText className="file-icon" />;
+        return <FaFileAlt className="file-icon" />;
     }
   };
 
@@ -142,25 +142,27 @@ const PublicDashboard = () => {
       <div className="stats-cards">
         <div className="card stat-card">
           <div className="stat-icon blue">
-            <Trash />
+            <FaTrashAlt />
           </div>
           <div className="stat-info">
             <h3>{monthlySummary.totalKg.toLocaleString()} kg</h3>
             <p>Total Waste Collected</p>
           </div>
         </div>
+
         <div className="card stat-card">
           <div className="stat-icon green">
-            <CurrencyDollar />
+            <FaMoneyBillWave />
           </div>
           <div className="stat-info">
             <h3>TZS {monthlySummary.totalPayments.toLocaleString()}</h3>
             <p>Total Payments</p>
           </div>
         </div>
+
         <div className="card stat-card">
           <div className="stat-icon orange">
-            <Building />
+            <FaBuilding />
           </div>
           <div className="stat-info">
             <h3>{hotels.length}</h3>
@@ -247,7 +249,7 @@ const PublicDashboard = () => {
     <>
       <div className="card">
         <h3>ForsterInvestment Documents</h3>
-        <p>Access reports, payment summaries shared by ForsterInvestment</p>
+        <p>Access reports and payment summaries shared by ForsterInvestment.</p>
       </div>
 
       <div className="viewer-controls">
@@ -288,36 +290,32 @@ const PublicDashboard = () => {
               </div>
               <div className="document-actions">
                 <button className="btn-view" onClick={() => openDocument(doc)}>
-                  <Eye /> View
+                  <FaEye /> View
                 </button>
                 <button
                   className="btn-download"
                   onClick={() => downloadDocument(doc.url)}
                 >
-                  <Download /> Download
+                  <FaDownload /> Download
                 </button>
               </div>
             </div>
           ))
         ) : (
           <div className="no-documents">
-            <FileEarmarkText />
-            <p>No documents found matching your criteria</p>
+            <FaFileAlt />
+            <p>No documents found matching your criteria.</p>
           </div>
         )}
       </div>
 
-      {/* Document Modal */}
       {selectedDocument && (
         <div className="document-modal" onClick={closeDocument}>
-          <div
-            className="modal-content"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>{selectedDocument.name}</h3>
               <button className="close-btn" onClick={closeDocument}>
-                <X />
+                <FaTimes />
               </button>
             </div>
             <div className="modal-body">
@@ -331,7 +329,7 @@ const PublicDashboard = () => {
                   className="btn-download-large"
                   onClick={() => downloadDocument(selectedDocument.url)}
                 >
-                  <Download /> Download File
+                  <FaDownload /> Download File
                 </button>
               </div>
               <div className="document-details">
@@ -387,9 +385,10 @@ const PublicDashboard = () => {
     <div className="dashboard">
       <div className="sidebar-public">
         <div className="logo-public">
-          <Trash />
+          <FaTrashAlt />
           <h1>ForsterInvestment</h1>
         </div>
+
         {["dashboard", "documents", "customers"].map((menu) => (
           <div
             key={menu}
@@ -398,11 +397,9 @@ const PublicDashboard = () => {
             }`}
             onClick={() => setActiveMenu(menu)}
           >
-            {{
-              dashboard: <House />,
-              documents: <FileEarmarkText />,
-              customers: <Building />,
-            }[menu]}
+            {menu === "dashboard" && <FaHome />}
+            {menu === "documents" && <FaFileAlt />}
+            {menu === "customers" && <FaBuilding />}
             <span>{menu.charAt(0).toUpperCase() + menu.slice(1)}</span>
           </div>
         ))}

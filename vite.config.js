@@ -15,6 +15,17 @@ export default defineConfig({
         secure: false,
       },
     },
+     optimizeDeps: {
+    include: [
+      "react-icons/fa",
+      "react-icons/ai",
+      "react-icons/bs",
+      "react-icons/md",
+      "react-icons/fi",
+      "react-icons/io",
+      "react-icons/gi",
+    ],
+  },
     allowedHosts: ['front.deploy.tz'],
   }
 })
