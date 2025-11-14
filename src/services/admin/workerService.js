@@ -26,7 +26,7 @@ export const getWorkers = async () => {
     const res = await api.get("/");
     return Array.isArray(res.data)
       ? res.data.filter((user) =>
-          ["Workers", "Supervisors", "Drivers", "HR", "Staff"].includes(user.role)
+          ["Workers", "Supervisors", "Drivers", "HR", "Staff", "Council"].includes(user.role)
         )
       : [];
   } catch (error) {

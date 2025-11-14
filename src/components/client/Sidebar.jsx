@@ -33,6 +33,7 @@ export default function Sidebar() {
     { to: "/client/hotel", icon: "bi-speedometer2", label: "Dashboard" },
     { to: "/client/hotel-pending", icon: "bi-building", label: "Registered Customer" },
     { to: "/client/payment-slips", icon: "bi-file-earmark-text", label: "Payment Slips" },
+    { to: "/client/invoices", icon: "bi-receipt", label: "My Invoices" },
 
   ];
 

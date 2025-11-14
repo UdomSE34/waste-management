@@ -9,13 +9,15 @@ export default function Sidebar() {
     { to: "/admin/attendance", icon: "bi-people", label: "Attendance" },
     { to: "/admin/workers", icon: "bi-people", label: "Workers" },
     { to: "/admin/deleted-workers", icon: "bi-person-x", label: "Deleted Workers" },
+    { to: "/admin/hotels", icon: "bi-building", label: "Hotel Clients" },
+    { to: "/admin/dashboard", icon: "bi-speedometer2", label: "Routes" },
+    { to: "/admin/scheduling", icon: "bi-calendar-event", label: "Scheduling" },
+    { to: "/admin/incomplete-schedules", icon: "bi-bar-chart-line", label: "Incomplete Schedules" },
+    { to: "/admin/completed-schedules", icon: "bi-check2-circle", label: "Completed Schedules" },
     { to: "/admin/paid-hotels", icon: "bi-building", label: "Hotels Payment" },
     { to: "/admin/payment-slips", icon: "bi-file-earmark-text", label: "Payment Slips" },
-    // { to: "/admin/admin-messaging", icon: "bi-chat-dots", label: "Messaging" },
+    { to: "/admin/invoice", icon: "bi-receipt", label: "Invoices" },
     { to: "/admin/monthly-summary", icon: "bi-bar-chart-line", label: "Monthly Summary" },
-    // Add role-specific links if needed
-    // { to: "/admin/incomplete-schedules", icon: "bi-bar-chart-line", label: "Incomplete Schedules" },
-    // { to: "/admin/completed-schedules", icon: "bi-check2-circle", label: "Completed Schedules" },
   ];
 
   return (

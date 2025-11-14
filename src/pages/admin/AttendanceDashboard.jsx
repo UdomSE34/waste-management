@@ -5,7 +5,7 @@ import {
   updateAttendance,
 } from "../../services/admin/SalaryService";
 import DataTable from "../../components/admin/DataTable";
-import '../../css/admin/SalaryManagement.css';
+import "../../css/admin/SalaryManagement.css";
 
 const AttendanceDashboard = () => {
   const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
@@ -15,7 +15,6 @@ const AttendanceDashboard = () => {
   const [selectedDate, setSelectedDate] = useState(today);
   const [usersAttendance, setUsersAttendance] = useState([]);
   const [loading, setLoading] = useState(true);
-
 
   // For status/comment modal
   const [showCommentModal, setShowCommentModal] = useState(false);
@@ -34,11 +33,20 @@ const AttendanceDashboard = () => {
     "July", "August", "September", "October", "November", "December"
   ];
 
+  // ✅ Load and filter attendance (excluding Council)
   const loadAttendance = async () => {
     setLoading(true);
     try {
       const data = await getAttendanceRecords(null, selectedMonth, selectedYear);
-      const filtered = data.filter(r => r.date === selectedDate && r.user_status === "active");
+
+      const filtered = data.filter(
+        (r) =>
+          r.date === selectedDate &&
+          r.user_status === "active" &&
+          !r.role?.toLowerCase().includes("council") && // Exclude Council by role
+          !r.name?.toLowerCase().includes("council")    // Safety: Exclude if name includes "Council"
+      );
+
       setUsersAttendance(filtered || []);
     } catch (error) {
       console.error("Error loading attendance:", error);
@@ -50,7 +58,6 @@ const AttendanceDashboard = () => {
   useEffect(() => {
     loadAttendance();
   }, [selectedMonth, selectedYear, selectedDate]);
-
 
   // Open status update modal (with comment input)
   const handleOpenStatusModal = (attendance, newStatus) => {
@@ -79,7 +86,7 @@ const AttendanceDashboard = () => {
   // Emergency modal
   const handleEmergencyClick = (attendance) => {
     setSelectedAttendance(attendance);
-    setCommentText(""); // optional user input
+    setCommentText("");
     setEmergencyStatus("");
     setShowEmergencyModal(true);
   };
@@ -138,7 +145,6 @@ const AttendanceDashboard = () => {
       <div className="card">
         <div className="card-header">
           <h3>Attendance Records</h3>
-          
         </div>
 
         <DataTable
@@ -158,14 +164,34 @@ const AttendanceDashboard = () => {
             ),
             Actions: (
               <div className="flex gap-2">
-                <button className="btn btn-primary" onClick={() => handleOpenStatusModal(record, 'present')}>Present</button>
-                <button className="btn btn-danger" onClick={() => handleOpenStatusModal(record, 'absent')}>Absent</button>
-                <button className="btn btn-sm" onClick={() => handleOpenStatusModal(record, 'sick')}>Sick</button>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => handleOpenStatusModal(record, "present")}
+                >
+                  Present
+                </button>
+                <button
+                  className="btn btn-danger"
+                  onClick={() => handleOpenStatusModal(record, "absent")}
+                >
+                  Absent
+                </button>
+                <button
+                  className="btn btn-sm"
+                  onClick={() => handleOpenStatusModal(record, "sick")}
+                >
+                  Sick
+                </button>
               </div>
             ),
             Emergency: (
-              <button className="btn btn-secondary" onClick={() => handleEmergencyClick(record)}>Emergency</button>
-            )
+              <button
+                className="btn btn-secondary"
+                onClick={() => handleEmergencyClick(record)}
+              >
+                Emergency
+              </button>
+            ),
           }))}
         />
       </div>
@@ -176,15 +202,22 @@ const AttendanceDashboard = () => {
           <div className="modal-content">
             <h3>Update Status: {selectedAttendance?.newStatus}</h3>
             <div className="form-group">
-<textarea
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              placeholder="Enter comment..."
-            />
-            </div> 
+              <textarea
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                placeholder="Enter comment..."
+              />
+            </div>
             <div className="modal-actions">
-              <button className="btn btn-secondary" onClick={() => setShowCommentModal(false)}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleSubmitStatus}>Save</button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowCommentModal(false)}
+              >
+                Cancel
+              </button>
+              <button className="btn btn-primary" onClick={handleSubmitStatus}>
+                Save
+              </button>
             </div>
           </div>
         </div>
@@ -197,19 +230,16 @@ const AttendanceDashboard = () => {
             <h3>Emergency Attendance for {selectedAttendance?.name}</h3>
             <p>Select type and optionally add a comment:</p>
             <div className="form-group">
- <select
-              value={emergencyStatus}
-              onChange={(e) => setEmergencyStatus(e.target.value)}
-              className="filter-select"
-            >
-              <option value="">-- Select --</option>
-              <option value="accident">Accident</option>
-              <option value="off">Off</option>
-            </select>
+              <select
+                value={emergencyStatus}
+                onChange={(e) => setEmergencyStatus(e.target.value)}
+                className="filter-select"
+              >
+                <option value="">-- Select --</option>
+                <option value="accident">Accident</option>
+                <option value="off">Off</option>
+              </select>
             </div>
-           <div className="form-group">
-
-           </div>
             <div className="form-group">
               <textarea
                 value={commentText}
@@ -218,8 +248,15 @@ const AttendanceDashboard = () => {
               />
             </div>
             <div className="modal-actions">
-              <button className="btn btn-secondary" onClick={() => setShowEmergencyModal(false)}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleSubmitEmergency}>Save</button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowEmergencyModal(false)}
+              >
+                Cancel
+              </button>
+              <button className="btn btn-primary" onClick={handleSubmitEmergency}>
+                Save
+              </button>
             </div>
           </div>
         </div>
@@ -232,12 +269,16 @@ const AttendanceDashboard = () => {
             <h3>Attendance Comment</h3>
             <p>{selectedAttendance?.comment || "No comment available."}</p>
             <div className="modal-actions">
-              <button className="btn btn-secondary" onClick={() => setShowViewCommentModal(false)}>Close</button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowViewCommentModal(false)}
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>
       )}
-
     </div>
   );
 };

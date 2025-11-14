@@ -15,6 +15,7 @@ import DeletedWorkers from "./pages/admin/DeletedWorkers";
 import AdminMessaging from "./pages/admin/AdminMessaging";
 import AdminPaymentSlips from "./components/admin/AdminPaymentSlips";
 import MonthlySummaryDashboard from "./pages/admin/MonthlySummaryPage";
+import AdminInvoice from "./pages/admin/AdminInvoices"
 
 // Staff Pages
 import Dashboard from "./pages/Dashboard";
@@ -38,6 +39,7 @@ import ClientRegistration from "./pages/client/ClientRegistration";
 import ClientPendingHotels from "./pages/client/ClientPendingHotels";
 import ClientScheduling from "./pages/client/ClientScheduling";
 import PaymentSlips from "./pages/client/PaymentSlip";
+import ClientInvoices from "./pages/client/ClientInvoices";
 
 // Public Municipul
 import PublicDashboard from "./pages/public/PublicDashboard";
@@ -67,6 +69,7 @@ export default function App() {
           <Route path="hotel-pending" element={<ClientPendingHotels />} />
           <Route path="schedule" element={<ClientScheduling />} />
           <Route path="payment-slips" element={<PaymentSlips />} />
+          <Route path="invoices" element={<ClientInvoices />} />
           <Route path="" element={<Navigate to="hotel" />} />
         </Route>
       </Route>
@@ -103,7 +106,13 @@ export default function App() {
           <Route path="admin-messaging" element={<AdminMessaging />} />
           <Route path="payment-slips" element={<AdminPaymentSlips />} />
           <Route path="monthly-summary" element={<MonthlySummaryDashboard />} />
+          <Route path="invoice" element={<AdminInvoice/>}/>
           <Route path="*" element={<Navigate to="/admin/workers" />} />
+          <Route pasth="dashboard" element={<Dashboard />} />
+          <Route path="scheduling" element={<Scheduling />} />
+          <Route path="hotels" element={<Hotels />} />
+          <Route path="completed-schedules" element={<CompletedSchedule />} />
+          <Route path="incomplete-schedules" element={<IncompleteSchedule />} />
         </Route>
       </Route>
 

@@ -20,7 +20,8 @@ const Scheduling = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedHotels, setSelectedHotels] = useState({});
   const [apologyModalVisible, setApologyModalVisible] = useState(false);
-  const [selectedHotelIdForApology, setSelectedHotelIdForApology] = useState(null);
+  const [selectedHotelIdForApology, setSelectedHotelIdForApology] =
+    useState(null);
   const [sendToday, setSendToday] = useState(false);
   const [sendTomorrow, setSendTomorrow] = useState(false);
   const alertRef = useRef(null);
@@ -34,7 +35,9 @@ const Scheduling = () => {
   const handleComplete = async (scheduleId) => {
     try {
       await updateCollection(scheduleId, { status: "Completed" });
-      setCollections((prev) => prev.filter((item) => item.schedule_id !== scheduleId));
+      setCollections((prev) =>
+        prev.filter((item) => item.schedule_id !== scheduleId)
+      );
     } catch (err) {
       console.error("Failed to complete schedule:", err);
       alert("Failed to update schedule. Please try again.");
@@ -43,7 +46,7 @@ const Scheduling = () => {
 
   const handleDownloadPDF = async () => {
     try {
-      const response = await fetch("/download-schedules/");
+      const response = await fetch("https://back.deploy.tz/download-schedules/");
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -54,8 +57,8 @@ const Scheduling = () => {
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      console.error("Error downloading PDF:", err);
-      alert("Failed to download PDF.");
+      // console.error("Error downloading PDF:", err);
+      // alert("Failed to download PDF.");
     }
   };
 
@@ -63,12 +66,19 @@ const Scheduling = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [collectionsRes, hotelsRes] = await Promise.all([getCollections(), getHotels()]);
+        const [collectionsRes, hotelsRes] = await Promise.all([
+          getCollections(),
+          getHotels(),
+        ]);
 
-        const today = new Date().toLocaleDateString("en-US", { weekday: "long" });
+        const today = new Date().toLocaleDateString("en-US", {
+          weekday: "long",
+        });
         const yesterdayDate = new Date();
         yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-        const yesterday = yesterdayDate.toLocaleDateString("en-US", { weekday: "long" });
+        const yesterday = yesterdayDate.toLocaleDateString("en-US", {
+          weekday: "long",
+        });
 
         const todaySchedules = collectionsRes.filter(
           (item) => item.status === "Pending" && item.day === today
@@ -104,7 +114,8 @@ const Scheduling = () => {
   // Alert click outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (alertRef.current && !alertRef.current.contains(event.target)) setShowAlert(false);
+      if (alertRef.current && !alertRef.current.contains(event.target))
+        setShowAlert(false);
     };
     if (showAlert) document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -114,9 +125,9 @@ const Scheduling = () => {
     setSelectedHotels((prev) => ({ ...prev, [hotelId]: !prev[hotelId] }));
   };
 
-  const distinctHotels = Array.from(new Set(collections.map((c) => c.hotel_name))).map(
-    (name) => hotels.find((h) => h.name === name)
-  );
+  const distinctHotels = Array.from(
+    new Set(collections.map((c) => c.hotel_name))
+  ).map((name) => hotels.find((h) => h.name === name));
 
   const handleApplyModal = async () => {
     try {
@@ -131,7 +142,10 @@ const Scheduling = () => {
       );
 
       setCollections((prev) =>
-        prev.map((c) => ({ ...c, is_visible: hotelsToShow.includes(c.hotel_id) }))
+        prev.map((c) => ({
+          ...c,
+          is_visible: hotelsToShow.includes(c.hotel_id),
+        }))
       );
       setShowModal(false);
     } catch (err) {
@@ -165,7 +179,9 @@ const Scheduling = () => {
       Action: (
         <div style={{ display: "flex", gap: "5px" }}>
           <button
-            className={`btn ${item.isYesterday ? "btn-danger blink" : "btn-primary"}`}
+            className={`btn ${
+              item.isYesterday ? "btn-danger blink" : "btn-primary"
+            }`}
             onClick={() => handleComplete(item.schedule_id)}
           >
             Complete
@@ -184,7 +200,11 @@ const Scheduling = () => {
           )}
         </div>
       ),
-      rowClassName: item.isYesterday ? "yesterday-row" : isLate ? "table-danger" : "",
+      rowClassName: item.isYesterday
+        ? "yesterday-row"
+        : isLate
+        ? "table-danger"
+        : "",
     };
   });
 
@@ -195,7 +215,10 @@ const Scheduling = () => {
     <div className="content">
       <div className="page-header">
         <h2>Daily Collections</h2>
-        <button className="btn btn-secondary" onClick={() => setShowModal(true)}>
+        <button
+          className="btn btn-secondary"
+          onClick={() => setShowModal(true)}
+        >
           Filter Hotels
         </button>
       </div>
@@ -207,19 +230,24 @@ const Scheduling = () => {
           <div ref={alertRef} className="popup-alert">
             <div className="popup-header">
               <h3>⚠️ Pending Collections from Yesterday</h3>
-              <button className="popup-close" onClick={() => setShowAlert(false)}>
+              <button
+                className="popup-close"
+                onClick={() => setShowAlert(false)}
+              >
                 &times;
               </button>
             </div>
             <div className="popup-content">
               <p>
-                There are <strong>{yesterdayCount}</strong> pending schedules from yesterday.
+                There are <strong>{yesterdayCount}</strong> pending schedules
+                from yesterday.
               </p>
               <div className="popup-actions">
                 <button
                   className="btn btn-primary"
                   onClick={() => {
-                    const yesterdayRows = document.querySelectorAll(".yesterday-row");
+                    const yesterdayRows =
+                      document.querySelectorAll(".yesterday-row");
                     if (yesterdayRows.length > 0)
                       yesterdayRows[0].scrollIntoView({ behavior: "smooth" });
                     setShowAlert(false);
@@ -227,7 +255,10 @@ const Scheduling = () => {
                 >
                   View Details
                 </button>
-                <button className="btn btn-secondary" onClick={() => setShowAlert(false)}>
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => setShowAlert(false)}
+                >
                   Dismiss
                 </button>
               </div>
@@ -240,13 +271,16 @@ const Scheduling = () => {
       <div className="card">
         <div className="card-header">
           <h3>Collections</h3>
-          {isWithinTimeWindow() && collections.length > 0 && (
+          {(collections.length > 0 || yesterdayCount > 0) && (
             <button className="btn btn-primary" onClick={handleDownloadPDF}>
               📄 Download PDF
             </button>
           )}
         </div>
-        <DataTable columns={["Day", "Time Range", "Hotel", "Status", "Action"]} rows={rows} />
+        <DataTable
+          columns={["Day", "Time Range", "Hotel", "Status", "Action"]}
+          rows={rows}
+        />
       </div>
 
       {/* Hotel Filter Modal */}
@@ -272,7 +306,10 @@ const Scheduling = () => {
               <button className="btn btn-primary" onClick={handleApplyModal}>
                 Apply
               </button>
-              <button className="btn btn-secondary" onClick={() => setShowModal(false)}>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowModal(false)}
+              >
                 Cancel
               </button>
             </div>
@@ -304,8 +341,10 @@ const Scheduling = () => {
                 className="btn btn-primary"
                 onClick={async () => {
                   try {
-                    if (sendToday) await sendTodayMessage(selectedHotelIdForApology);
-                    if (sendTomorrow) await sendTomorrowMessage(selectedHotelIdForApology);
+                    if (sendToday)
+                      await sendTodayMessage(selectedHotelIdForApology);
+                    if (sendTomorrow)
+                      await sendTomorrowMessage(selectedHotelIdForApology);
                     alert("Apology sent successfully!");
                     setApologyModalVisible(false);
                     setSendToday(false);
@@ -317,7 +356,10 @@ const Scheduling = () => {
               >
                 Send
               </button>
-              <button className="btn btn-secondary" onClick={() => setApologyModalVisible(false)}>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setApologyModalVisible(false)}
+              >
                 Cancel
               </button>
             </div>

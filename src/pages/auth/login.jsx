@@ -77,6 +77,9 @@ export default function Login() {
         case "client":
           navigate("/client/hotel");
           break;
+          case "Council":
+          navigate("/public");
+          break;
         default:
           navigate("/");
       }

@@ -11,9 +11,10 @@ const WorkersDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [users, setUsers] = useState([]);
+  const [, setUsers] = useState([]);
   const [showAddUser, setShowAddUser] = useState(false);
-  const [showUserDetails, setShowUserDetails] = useState(null);
+  // eslint-disable-next-line no-empty-pattern
+  const [] = useState(null);
   
   
 
@@ -29,7 +30,7 @@ const WorkersDashboard = () => {
   };
 
   // Match backend role values exactly
-const roles = [ "Staff", "Workers", "HR", "Supervisors", "Drivers"];
+const roles = [ "Staff", "Workers", "HR", "Supervisors", "Drivers", "Council"];
 
   // New user form
   const [newUser, setNewUser] = useState({
@@ -416,7 +417,6 @@ const roles = [ "Staff", "Workers", "HR", "Supervisors", "Drivers"];
                   name="email"
                   value={newUser.email}
                   onChange={handleInputChange}
-                  required
                 />
               </div>
               <div className="form-group">

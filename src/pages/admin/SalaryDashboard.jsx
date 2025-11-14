@@ -20,8 +20,8 @@ const SalaryDashboard = () => {
   const [error, setError] = useState(null);
 
   const months = [
-    "January","February","March","April","May","June",
-    "July","August","September","October","November","December"
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
   ];
 
   const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i);
@@ -34,13 +34,17 @@ const SalaryDashboard = () => {
     try {
       setLoading(true);
       setError(null);
+
       const [usersData, policiesData] = await Promise.all([
         fetchUsersWithSalaries(selectedMonth, selectedYear),
         fetchRolePolicies(),
       ]);
 
-      // Filter only active users from API
-      const activeUsers = (usersData || []).filter(u => u.status === "Active" || u.is_active);
+      // ✅ Filter active users and exclude Council role
+      const activeUsers = (usersData || [])
+        .filter(u => u.status === "Active" || u.is_active)
+        .filter(u => u.role !== "Council"); // 👈 Exclude council users
+
       setUsers(activeUsers);
       setRolePolicies(policiesData || []);
     } catch (err) {
@@ -79,14 +83,12 @@ const SalaryDashboard = () => {
     }
   };
 
-  // Token-aware Axios instance
-
+  // ✅ Token-aware Axios instance
   const api = axios.create({
     baseURL: "/api/salary/",
     timeout: 10000,
   });
-  
-  // Attach token automatically
+
   api.interceptors.request.use(
     (config) => {
       const token = localStorage.getItem("authToken");
@@ -99,24 +101,23 @@ const SalaryDashboard = () => {
     (error) => Promise.reject(error)
   );
 
- const handleExportPDF = async () => {
-  try {
-    const response = await api.get("salaries/export_pdf/", {
-      responseType: "blob", // important for binary
-    });
+  const handleExportPDF = async () => {
+    try {
+      const response = await api.get("salaries/export_pdf/", {
+        responseType: "blob", // important for binary
+      });
 
-    const url = window.URL.createObjectURL(new Blob([response.data]));
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", "salaries.pdf");
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-  } catch (err) {
-    console.error("PDF export failed:", err.response?.data || err.message);
-  }
-};
-
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "salaries.pdf");
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      console.error("PDF export failed:", err.response?.data || err.message);
+    }
+  };
 
   if (loading) return <div className="loading">Loading salary data...</div>;
 
@@ -143,7 +144,9 @@ const SalaryDashboard = () => {
               <option key={year} value={year}>{year}</option>
             ))}
           </select>
-          <button className="btn btn-primary" onClick={handleExportPDF}>Export Salaries PDF</button>
+          <button className="btn btn-primary" onClick={handleExportPDF}>
+            Export Salaries PDF
+          </button>
         </div>
       </div>
 
@@ -179,24 +182,25 @@ const SalaryDashboard = () => {
         </div>
         <DataTable
           columns={[
-            "Name","Role","Base Salary","Bonuses","Deductions","Total Salary","Absences","Status","Actions"
+            "Name", "Role", "Base Salary", "Bonuses", "Deductions",
+            "Total Salary", "Absences", "Status", "Actions"
           ]}
           rows={users.map((user) => ({
             Name: user.name,
             Role: user.role,
             "Base Salary": user.salary?.base_salary
-              ? `$${parseFloat(user.salary.base_salary).toLocaleString()}`
+              ? `${parseFloat(user.salary.base_salary).toLocaleString()} Tsh`
               : "-",
             Bonuses: user.salary?.bonuses
-              ? `$${parseFloat(user.salary.bonuses).toLocaleString()}`
+              ? `${parseFloat(user.salary.bonuses).toLocaleString()} Tsh`
               : "-",
             Deductions: user.salary?.deductions
-              ? `$${parseFloat(user.salary.deductions).toLocaleString()}`
+              ? `${parseFloat(user.salary.deductions).toLocaleString()} Tsh`
               : "-",
             "Total Salary": user.salary?.total_salary
-              ? `$${parseFloat(user.salary.total_salary).toLocaleString()}`
+              ? `${parseFloat(user.salary.total_salary).toLocaleString()} Tsh`
               : "-",
-            Absences: user.absences || 0, // NEW column for number of absent days
+            Absences: user.absences || 0,
             Status: user.salary?.status || "-",
             Actions: user.salary ? (
               <button
@@ -216,13 +220,22 @@ const SalaryDashboard = () => {
         <div className="modal">
           <div className="modal-content">
             <h3>Calculate Salaries</h3>
-            <p>Calculate salaries for {months[selectedMonth - 1]} {selectedYear}?</p>
+            <p>
+              Calculate salaries for {months[selectedMonth - 1]} {selectedYear}?
+            </p>
             <p className="warning-text">
               This will calculate salaries based on attendance records and role policies.
             </p>
             <div className="modal-actions">
-              <button className="btn btn-secondary" onClick={() => setShowCalculateModal(false)}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleCalculateSalaries}>Calculate</button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowCalculateModal(false)}
+              >
+                Cancel
+              </button>
+              <button className="btn btn-primary" onClick={handleCalculateSalaries}>
+                Calculate
+              </button>
             </div>
           </div>
         </div>

@@ -4,7 +4,7 @@ import {
   createHotel,
   updateHotel,
   deleteHotel,
-  exportHotels,
+
 } from "../services/hotelServices";
 import DataTable from "../components/DataTable";
 import "../css/Hotels.css";
@@ -19,7 +19,6 @@ const HotelClients = () => {
   // Modal states
   const [showAddHotel, setShowAddHotel] = useState(false);
   const [showEditHotel, setShowEditHotel] = useState(null);
-  const [showExportOptions, setShowExportOptions] = useState(false);
 
   // New hotel form state
   const [newHotel, setNewHotel] = useState({
@@ -202,23 +201,23 @@ const HotelClients = () => {
   };
 
   // Export hotels
-  const handleExport = async (format) => {
-    try {
-      const blob = await exportHotels(format);
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `hotels.${format}`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-      setShowExportOptions(false);
-    } catch (err) {
-      console.error("Failed to export hotels:", err);
-      alert("Failed to export hotels. Please try again.");
-    }
-  };
+  // const handleExport = async (format) => {
+  //   try {
+  //     const blob = await exportHotels(format);
+  //     const url = window.URL.createObjectURL(blob);
+  //     const a = document.createElement("a");
+  //     a.href = url;
+  //     a.download = `hotels.${format}`;
+  //     document.body.appendChild(a);
+  //     a.click();
+  //     document.body.removeChild(a);
+  //     window.URL.revokeObjectURL(url);
+  //     setShowExportOptions(false);
+  //   } catch (err) {
+  //     console.error("Failed to export hotels:", err);
+  //     alert("Failed to export hotels. Please try again.");
+  //   }
+  // };
 
   // Status badge classes
 
@@ -315,13 +314,7 @@ const HotelClients = () => {
                   {" "}
                   <span> </span>+ Add Hotel
                 </button>
-                &nbsp;
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => setShowExportOptions(true)}
-                >
-                  Export Data
-                </button>
+                           
               </div>
             </div>
             <div className="col-ms-12">
@@ -786,45 +779,6 @@ const HotelClients = () => {
         </div>
       )}
 
-      {/* Export Options Modal */}
-      {showExportOptions && (
-        <div className="modal">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3>Export Hotel Data</h3>
-              <span
-                className="close-modal"
-                onClick={() => setShowExportOptions(false)}
-              >
-                &times;
-              </span>
-            </div>
-            <div className="export-options">
-              <p>Select export format:</p>
-              <div className="export-buttons">
-                <button
-                  className="btn btn-outline"
-                  onClick={() => handleExport("csv")}
-                >
-                  CSV
-                </button>
-                <button
-                  className="btn btn-outline"
-                  onClick={() => handleExport("xlsx")}
-                >
-                  Excel
-                </button>
-                <button
-                  className="btn btn-outline"
-                  onClick={() => handleExport("pdf")}
-                >
-                  PDF
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

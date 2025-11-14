@@ -312,7 +312,6 @@ const UserManagement = () => {
                   name="email"
                   value={newUser.email}
                   onChange={handleInputChange}
-                  required
                 />
               </div>
               <div className="form-group">

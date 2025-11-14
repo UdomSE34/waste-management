@@ -8,6 +8,7 @@ import {
   deletePaymentSlip,
 } from "../../services/client/paymentSlipService";
 
+
 const PaymentSlips = () => {
   const [slips, setSlips] = useState([]);
   const [loading, setLoading] = useState(true);

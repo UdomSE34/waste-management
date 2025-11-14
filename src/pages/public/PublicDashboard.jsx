@@ -50,14 +50,12 @@ const PublicDashboard = () => {
         const totalKg = data.reduce(
           (sum, item) =>
             sum +
-            (item.total_actual_waste || 0) +
             (item.total_processed_waste || 0),
           0
         );
         const totalPayments = data.reduce(
           (sum, item) =>
             sum +
-            (parseFloat(item.total_actual_payment) || 0) +
             (parseFloat(item.total_processed_payment) || 0),
           0
         );
@@ -75,10 +73,8 @@ const PublicDashboard = () => {
           return {
             name: monthLabel,
             waste:
-              (monthData?.total_actual_waste || 0) +
               (monthData?.total_processed_waste || 0),
             payment:
-              (parseFloat(monthData?.total_actual_payment) || 0) +
               (parseFloat(monthData?.total_processed_payment) || 0),
           };
         });
@@ -313,7 +309,7 @@ const PublicDashboard = () => {
             <th>Address</th>
             <th>Contact</th>
             <th>Hadhi</th>
-            <th>Status</th>
+            {/* <th>Status</th> */}
           </tr>
         </thead>
         <tbody>
@@ -323,14 +319,14 @@ const PublicDashboard = () => {
               <td>{hotel.address || "N/A"}</td>
               <td>{hotel.contact_phone || "N/A"}</td>
               <td>{hotel.hadhi || "N/A"}</td>
-              <td>
+              {/* <td>
                 <span className={`status ${hotel.status || ""}`}>
                   {hotel.status
                     ? hotel.status.charAt(0).toUpperCase() +
                       hotel.status.slice(1)
                     : "N/A"}
                 </span>
-              </td>
+              </td> */}
             </tr>
           ))}
         </tbody>
