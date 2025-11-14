@@ -8,8 +8,6 @@ import {
   deletePaymentSlip,
 } from "../../services/client/paymentSlipService";
 
-const BACKEND_URL = "https://back.deploy.tz"; // Your deployed backend
-
 const PaymentSlips = () => {
   const [slips, setSlips] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,15 +15,24 @@ const PaymentSlips = () => {
   const [success, setSuccess] = useState("");
   const [btnLoading, setBtnLoading] = useState(false);
 
-  const [modals, setModals] = useState({
-    add: false,
-    edit: false,
-    details: false,
+  const [modals, setModals] = useState({ add: false, edit: false, details: false });
+  const [activeSlip, setActiveSlip] = useState(null);
+
+  const [newSlip, setNewSlip] = useState({
+    client: "",
+    month_paid: "",
+    status: "current",
+    comment: "",
+    file: null,
   });
 
-  const [activeSlip, setActiveSlip] = useState(null);
-  const [newSlip, setNewSlip] = useState({ client: "", month_paid: "", status: "current", comment: "", file: null });
-  const [editSlip, setEditSlip] = useState({ slip_id: "", month_paid: "", status: "current", comment: "", file: null });
+  const [editSlip, setEditSlip] = useState({
+    slip_id: "",
+    month_paid: "",
+    status: "current",
+    comment: "",
+    file: null,
+  });
 
   const navigate = useNavigate();
 
@@ -76,26 +83,35 @@ const PaymentSlips = () => {
     else setNewSlip((prev) => ({ ...prev, [name]: val }));
   };
 
-  // Handle add/edit
+  // Handle add/edit submission
   const handleSubmit = async (isEdit = false) => {
     clearMessages();
     setBtnLoading(true);
     try {
       const slip = isEdit ? editSlip : newSlip;
       const formData = new FormData();
-      const formattedMonth = slip.month_paid?.length === 7 ? `${slip.month_paid}-01` : slip.month_paid;
+      const formattedMonth =
+        slip.month_paid?.length === 7 ? `${slip.month_paid}-01` : slip.month_paid;
       if (!isEdit) formData.append("client", slip.client);
       formData.append("month_paid", formattedMonth);
       formData.append("status", slip.status);
       formData.append("comment", slip.comment);
       if (slip.file) formData.append("file", slip.file);
 
-      if (isEdit) await updatePaymentSlip(editSlip.slip_id, formData);
+      if (isEdit) await updatePaymentSlip(slip.slip_id, formData);
       else await addPaymentSlip(formData);
 
       setModals((prev) => ({ ...prev, [isEdit ? "edit" : "add"]: false }));
-      if (isEdit) setEditSlip({ slip_id: "", month_paid: "", status: "current", comment: "", file: null });
-      else setNewSlip({ client: localStorage.getItem("userId"), month_paid: "", status: "current", comment: "", file: null });
+      if (isEdit)
+        setEditSlip({ slip_id: "", month_paid: "", status: "current", comment: "", file: null });
+      else
+        setNewSlip({
+          client: localStorage.getItem("userId"),
+          month_paid: "",
+          status: "current",
+          comment: "",
+          file: null,
+        });
 
       setSuccess(isEdit ? "✅ Payment slip updated successfully!" : "✅ Payment slip added successfully!");
       await loadSlips();
@@ -108,35 +124,25 @@ const PaymentSlips = () => {
   };
 
   // View files securely
-const handleViewFile = async (filePath) => {
-  if (!filePath) return alert("No file uploaded yet.");
+  const handleViewFile = async (fileUrl) => {
+    if (!fileUrl) return alert("No file uploaded yet.");
 
-  // Ensure HTTPS
-  let fileUrl;
-  if (filePath.startsWith("http")) {
-    fileUrl = filePath.replace(/^http:\/\//i, "https://"); // force HTTPS
-  } else {
-    fileUrl = `${BACKEND_URL}/media/${filePath.replace(/^\/?media\/?/, '')}`;
-  }
-
-  const token = localStorage.getItem("authToken");
-
-  try {
-    const res = await fetch(fileUrl, {
-      headers: { Authorization: `Token ${token}` },
-    });
-    if (!res.ok) {
-      if (res.status === 404) throw new Error("File not found on server.");
-      throw new Error("Failed to fetch file.");
+    const token = localStorage.getItem("authToken");
+    try {
+      const res = await fetch(fileUrl.replace(/^http:\/\//i, "https://"), {
+        headers: { Authorization: `Token ${token}` },
+      });
+      if (!res.ok) {
+        if (res.status === 404) throw new Error("File not found on server.");
+        throw new Error("Failed to fetch file.");
+      }
+      const blob = await res.blob();
+      window.open(URL.createObjectURL(blob), "_blank");
+    } catch (err) {
+      console.error("Error opening file:", err);
+      alert(err.message);
     }
-    const blob = await res.blob();
-    window.open(URL.createObjectURL(blob), "_blank");
-  } catch (err) {
-    console.error("Error opening file:", err);
-    alert(err.message);
-  }
-};
-
+  };
 
   // Delete slip
   const handleDeleteSlip = async (slipId) => {
@@ -179,7 +185,12 @@ const handleViewFile = async (filePath) => {
       <div className="card">
         <div className="card-header">
           <h3>Payment Slips</h3>
-          <button className="btn btn-primary" onClick={() => setModals((prev) => ({ ...prev, add: true }))}>+ Add Payment Slip</button>
+          <button
+            className="btn btn-primary"
+            onClick={() => setModals((prev) => ({ ...prev, add: true }))}
+          >
+            + Add Payment Slip
+          </button>
         </div>
 
         {loading ? (
@@ -190,13 +201,34 @@ const handleViewFile = async (filePath) => {
             rows={slips.map((s) => ({
               Month: s.month_paid || "-",
               "Paid For": s.status === "current" ? "Current Month" : "Previous Month",
-              File: <button className="btn btn-outline" onClick={() => handleViewFile(s.file)}>View Slip</button>,
-              Receipt: s.receipt ? <button className="btn btn-outline" onClick={() => handleViewFile(s.receipt)}>View Receipt</button> : <i style={{ color: "#999" }}>No receipt</i>,
-              Comment: <button className="btn btn-sm btn-outline" onClick={() => openDetailsModal(s)}>View Details</button>,
+              File: (
+                <button
+                  className="btn btn-outline"
+                  onClick={() => handleViewFile(s.file_url)}
+                >
+                  View Slip
+                </button>
+              ),
+              Receipt: s.receipt_url ? (
+                <button className="btn btn-outline" onClick={() => handleViewFile(s.receipt_url)}>
+                  View Receipt
+                </button>
+              ) : (
+                <i style={{ color: "#999" }}>No receipt</i>
+              ),
+              Comment: (
+                <button className="btn btn-sm btn-outline" onClick={() => openDetailsModal(s)}>
+                  View Details
+                </button>
+              ),
               Actions: (
                 <>
-                  <button className="btn btn-outline" onClick={() => openEditModal(s)}>Edit</button>
-                  <button className="btn btn-sm btn-danger" onClick={() => handleDeleteSlip(s.slip_id)}>Delete</button>
+                  <button className="btn btn-outline" onClick={() => openEditModal(s)}>
+                    Edit
+                  </button>
+                  <button className="btn btn-sm btn-danger" onClick={() => handleDeleteSlip(s.slip_id)}>
+                    Delete
+                  </button>
                 </>
               ),
             }))}
@@ -204,7 +236,7 @@ const handleViewFile = async (filePath) => {
         )}
       </div>
 
-      {/* Add/Edit Modal */}
+      {/* Add/Edit Modals */}
       {["add", "edit"].map((type) => {
         const isEdit = type === "edit";
         const slip = isEdit ? editSlip : newSlip;
@@ -213,12 +245,23 @@ const handleViewFile = async (filePath) => {
             <div className="modal-content">
               <div className="modal-header">
                 <h3>{isEdit ? "Edit" : "Add"} Payment Slip</h3>
-                <button className="btn-close" onClick={() => setModals((prev) => ({ ...prev, [type]: false }))}>×</button>
+                <button
+                  className="btn-close"
+                  onClick={() => setModals((prev) => ({ ...prev, [type]: false }))}
+                >
+                  ×
+                </button>
               </div>
               <form onSubmit={(e) => { e.preventDefault(); handleSubmit(isEdit); }}>
                 <div className="form-group">
                   <label>Month</label>
-                  <input type="month" name="month_paid" value={slip.month_paid} onChange={(e) => handleInputChange(e, isEdit)} required />
+                  <input
+                    type="month"
+                    name="month_paid"
+                    value={slip.month_paid}
+                    onChange={(e) => handleInputChange(e, isEdit)}
+                    required
+                  />
                 </div>
                 <div className="form-group">
                   <label>Paid For</label>
@@ -229,15 +272,33 @@ const handleViewFile = async (filePath) => {
                 </div>
                 <div className="form-group">
                   <label>Comment</label>
-                  <textarea name="comment" value={slip.comment} onChange={(e) => handleInputChange(e, isEdit)} />
+                  <textarea
+                    name="comment"
+                    value={slip.comment}
+                    onChange={(e) => handleInputChange(e, isEdit)}
+                  />
                 </div>
                 <div className="form-group">
                   <label>File (PDF/Image)</label>
-                  <input type="file" name="file" accept=".pdf,image/*" onChange={(e) => handleInputChange(e, isEdit)} {...(!isEdit && { required: true })} />
+                  <input
+                    type="file"
+                    name="file"
+                    accept=".pdf,image/*"
+                    onChange={(e) => handleInputChange(e, isEdit)}
+                    {...(!isEdit && { required: true })}
+                  />
                 </div>
                 <div className="form-actions">
-                  <button type="button" className="btn btn-outline" onClick={() => setModals((prev) => ({ ...prev, [type]: false }))}>Cancel</button>
-                  <button type="submit" className="btn btn-primary" disabled={btnLoading}>{btnLoading ? (isEdit ? "Saving..." : "Uploading...") : (isEdit ? "Save Changes" : "Upload")}</button>
+                  <button
+                    type="button"
+                    className="btn btn-outline"
+                    onClick={() => setModals((prev) => ({ ...prev, [type]: false }))}
+                  >
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn btn-primary" disabled={btnLoading}>
+                    {btnLoading ? (isEdit ? "Saving..." : "Uploading...") : (isEdit ? "Save Changes" : "Upload")}
+                  </button>
                 </div>
               </form>
             </div>
@@ -251,7 +312,12 @@ const handleViewFile = async (filePath) => {
           <div className="modal-content">
             <div className="modal-header">
               <h3>Slip Details</h3>
-              <button className="btn-close" onClick={() => setModals((prev) => ({ ...prev, details: false }))}>×</button>
+              <button
+                className="btn-close"
+                onClick={() => setModals((prev) => ({ ...prev, details: false }))}
+              >
+                ×
+              </button>
             </div>
             <div className="modal-body">
               <p><strong>Month:</strong> {activeSlip.month_paid}</p>
