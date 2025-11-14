@@ -1,6 +1,7 @@
 import axios from "axios";
 
-const API_URL = "/api/payment-slips/";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "https://back.deploy.tz";
+const API_URL = `${BACKEND_URL}/api/payment-slips/`;
 
 export const api = axios.create({
   baseURL: API_URL,
@@ -19,89 +20,41 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// ✅ Get all payment slips
+// Fetch payment slips
 export const fetchPaymentSlips = async () => {
   try {
-    const res = await api.get(""); // no slash
-    let slips = [];
-
-    if (Array.isArray(res.data)) {
-      slips = res.data;
-    } else if (res.data && Array.isArray(res.data.results)) {
-      slips = res.data.results; // handle paginated response
-    } else {
-      console.warn("Unexpected API response format:", res.data);
-      return [];
-    }
-
-    return slips;
+    const res = await api.get("");
+    if (Array.isArray(res.data)) return res.data;
+    if (res.data && Array.isArray(res.data.results)) return res.data.results;
+    console.warn("Unexpected API response:", res.data);
+    return [];
   } catch (error) {
-    console.error("❌ Error fetching payment slips:", {
-      message: error.message,
-      status: error.response?.status,
-      data: error.response?.data,
-    });
+    console.error("Error fetching payment slips:", error.response?.data || error.message);
     throw error;
   }
 };
 
-// ✅ Add a new payment slip (with file upload)
+// Add payment slip
 export const addPaymentSlip = async (formData) => {
-  if (!formData || !(formData instanceof FormData)) {
-    throw new Error("Invalid formData for payment slip upload");
-  }
-
-  try {
-    const res = await api.post("", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-    return res.data;
-  } catch (error) {
-    console.error("❌ Error uploading payment slip:", {
-      message: error.message,
-      status: error.response?.status,
-      data: error.response?.data,
-    });
-    throw error;
-  }
+  const res = await api.post("", formData, { headers: { "Content-Type": "multipart/form-data" } });
+  return res.data;
 };
 
-// ✅ Update a payment slip (with file upload optional)
+// Update payment slip
 export const updatePaymentSlip = async (slipId, formData) => {
-  if (!slipId) throw new Error("Slip ID is required");
-  if (!formData || !(formData instanceof FormData)) {
-    throw new Error("Invalid formData for updating payment slip");
-  }
-
-  try {
-    const res = await api.put(`${slipId}/`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-    return res.data;
-  } catch (error) {
-    console.error("❌ Error updating payment slip:", {
-      message: error.message,
-      status: error.response?.status,
-      data: error.response?.data,
-    });
-    throw error;
-  }
+  const res = await api.put(`${slipId}/`, formData, { headers: { "Content-Type": "multipart/form-data" } });
+  return res.data;
 };
 
-// ✅ Delete a payment slip
+// Delete payment slip
 export const deletePaymentSlip = async (slipId) => {
-  if (!slipId) throw new Error("Slip ID is required");
-
-  try {
-    const res = await api.delete(`${slipId}/`);
-    return res.data;
-  } catch (error) {
-    console.error("❌ Error deleting payment slip:", {
-      message: error.message,
-      status: error.response?.status,
-      data: error.response?.data,
-    });
-    throw error;
-  }
+  const res = await api.delete(`${slipId}/`);
+  return res.data;
 };
 
+// Helper to build full file URL
+export const getFileUrl = (filePath) => {
+  if (!filePath) return null;
+  if (filePath.startsWith("http")) return filePath;
+  return `${BACKEND_URL}${filePath}`;
+};
