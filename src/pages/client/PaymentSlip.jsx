@@ -24,20 +24,8 @@ const PaymentSlips = () => {
   });
 
   const [activeSlip, setActiveSlip] = useState(null);
-  const [newSlip, setNewSlip] = useState({
-    client: "",
-    month_paid: "",
-    status: "current",
-    comment: "",
-    file: null,
-  });
-  const [editSlip, setEditSlip] = useState({
-    slip_id: "",
-    month_paid: "",
-    status: "current",
-    comment: "",
-    file: null,
-  });
+  const [newSlip, setNewSlip] = useState({ client: "", month_paid: "", status: "current", comment: "", file: null });
+  const [editSlip, setEditSlip] = useState({ slip_id: "", month_paid: "", status: "current", comment: "", file: null });
 
   const navigate = useNavigate();
 
@@ -95,10 +83,7 @@ const PaymentSlips = () => {
     try {
       const slip = isEdit ? editSlip : newSlip;
       const formData = new FormData();
-      const formattedMonth =
-        slip.month_paid?.length === 7
-          ? `${slip.month_paid}-01`
-          : slip.month_paid;
+      const formattedMonth = slip.month_paid?.length === 7 ? `${slip.month_paid}-01` : slip.month_paid;
       if (!isEdit) formData.append("client", slip.client);
       formData.append("month_paid", formattedMonth);
       formData.append("status", slip.status);
@@ -109,79 +94,40 @@ const PaymentSlips = () => {
       else await addPaymentSlip(formData);
 
       setModals((prev) => ({ ...prev, [isEdit ? "edit" : "add"]: false }));
-      if (isEdit)
-        setEditSlip({
-          slip_id: "",
-          month_paid: "",
-          status: "current",
-          comment: "",
-          file: null,
-        });
-      else
-        setNewSlip({
-          client: localStorage.getItem("userId"),
-          month_paid: "",
-          status: "current",
-          comment: "",
-          file: null,
-        });
+      if (isEdit) setEditSlip({ slip_id: "", month_paid: "", status: "current", comment: "", file: null });
+      else setNewSlip({ client: localStorage.getItem("userId"), month_paid: "", status: "current", comment: "", file: null });
 
-      setSuccess(
-        isEdit
-          ? "✅ Payment slip updated successfully!"
-          : "✅ Payment slip added successfully!"
-      );
+      setSuccess(isEdit ? "✅ Payment slip updated successfully!" : "✅ Payment slip added successfully!");
       await loadSlips();
     } catch (err) {
       console.error(err);
-      setError(
-        isEdit
-          ? "❌ Failed to update payment slip."
-          : "❌ Failed to add payment slip."
-      );
+      setError(isEdit ? "❌ Failed to update payment slip." : "❌ Failed to add payment slip.");
     } finally {
       setBtnLoading(false);
     }
   };
 
   // View files securely
-  const handleViewFile = async (filePath) => {
-    if (!filePath) return;
+const handleViewFile = async (filePath) => {
+  if (!filePath) return alert("No file uploaded yet.");
+  
+  const fileUrl = filePath.startsWith("http") ? filePath : `${BACKEND_URL}/media/${filePath.replace(/^\/?media\/?/, '')}`;
+  const token = localStorage.getItem("authToken");
 
-    try {
-      // Force HTTPS
-      const fileUrl = filePath.replace(/^http:\/\//i, "https://");
-
-      // Get auth token if it exists
-      const token = localStorage.getItem("authToken");
-
-      // If token exists, fetch the file as Blob (for authenticated access)
-      if (token) {
-        const res = await fetch(fileUrl, {
-          headers: {
-            Authorization: `Token ${token}`,
-          },
-        });
-
-        if (!res.ok) throw new Error("Failed to fetch file");
-
-        const blob = await res.blob();
-        const blobUrl = window.URL.createObjectURL(blob);
-
-        // Open the file in a new tab
-        window.open(blobUrl, "_blank");
-
-        // Optional: Revoke the blob URL after a short delay to free memory
-        setTimeout(() => window.URL.revokeObjectURL(blobUrl), 10000);
-      } else {
-        // No token → open directly (for public files)
-        window.open(fileUrl, "_blank");
-      }
-    } catch (err) {
-      console.error("Error opening file:", err);
-      alert("Failed to open file.");
+  try {
+    const res = await fetch(fileUrl, { headers: { Authorization: `Token ${token}` } });
+    if (!res.ok) {
+      if (res.status === 404) throw new Error("File not found on server.");
+      throw new Error("Failed to fetch file.");
     }
-  };
+    const blob = await res.blob();
+    window.open(URL.createObjectURL(blob), "_blank");
+  } catch (err) {
+    console.error("Error opening file:", err);
+    alert(err.message);
+  }
+};
+
 
   // Delete slip
   const handleDeleteSlip = async (slipId) => {
@@ -218,84 +164,30 @@ const PaymentSlips = () => {
         <h2>Payment Slips</h2>
       </div>
 
-      {success && (
-        <div className="success-message" onClick={() => setSuccess("")}>
-          {success}
-        </div>
-      )}
-      {error && (
-        <div className="error-message" onClick={() => setError("")}>
-          {error}
-        </div>
-      )}
+      {success && <div className="success-message" onClick={() => setSuccess("")}>{success}</div>}
+      {error && <div className="error-message" onClick={() => setError("")}>{error}</div>}
 
       <div className="card">
         <div className="card-header">
           <h3>Payment Slips</h3>
-          <button
-            className="btn btn-primary"
-            onClick={() => setModals((prev) => ({ ...prev, add: true }))}
-          >
-            + Add Payment Slip
-          </button>
+          <button className="btn btn-primary" onClick={() => setModals((prev) => ({ ...prev, add: true }))}>+ Add Payment Slip</button>
         </div>
 
         {loading ? (
           <div className="loading-indicator">Loading payment slips...</div>
         ) : (
           <DataTable
-            columns={[
-              "Month",
-              "Paid For",
-              "File",
-              "Receipt",
-              "Comment",
-              "Actions",
-            ]}
+            columns={["Month", "Paid For", "File", "Receipt", "Comment", "Actions"]}
             rows={slips.map((s) => ({
               Month: s.month_paid || "-",
-              "Paid For":
-                s.status === "current" ? "Current Month" : "Previous Month",
-              File: (
-                <button
-                  className="btn btn-outline"
-                  onClick={() => handleViewFile(s.file)}
-                >
-                  View Slip
-                </button>
-              ),
-              Receipt: s.receipt ? (
-                <button
-                  className="btn btn-outline"
-                  onClick={() => handleViewFile(s.receipt)}
-                >
-                  View Receipt
-                </button>
-              ) : (
-                <i style={{ color: "#999" }}>No receipt</i>
-              ),
-              Comment: (
-                <button
-                  className="btn btn-sm btn-outline"
-                  onClick={() => openDetailsModal(s)}
-                >
-                  View Details
-                </button>
-              ),
+              "Paid For": s.status === "current" ? "Current Month" : "Previous Month",
+              File: <button className="btn btn-outline" onClick={() => handleViewFile(s.file)}>View Slip</button>,
+              Receipt: s.receipt ? <button className="btn btn-outline" onClick={() => handleViewFile(s.receipt)}>View Receipt</button> : <i style={{ color: "#999" }}>No receipt</i>,
+              Comment: <button className="btn btn-sm btn-outline" onClick={() => openDetailsModal(s)}>View Details</button>,
               Actions: (
                 <>
-                  <button
-                    className="btn btn-outline"
-                    onClick={() => openEditModal(s)}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    className="btn btn-sm btn-danger"
-                    onClick={() => handleDeleteSlip(s.slip_id)}
-                  >
-                    Delete
-                  </button>
+                  <button className="btn btn-outline" onClick={() => openEditModal(s)}>Edit</button>
+                  <button className="btn btn-sm btn-danger" onClick={() => handleDeleteSlip(s.slip_id)}>Delete</button>
                 </>
               ),
             }))}
@@ -307,94 +199,40 @@ const PaymentSlips = () => {
       {["add", "edit"].map((type) => {
         const isEdit = type === "edit";
         const slip = isEdit ? editSlip : newSlip;
-        return (
-          modals[type] && (
-            <div className="modal" key={type}>
-              <div className="modal-content">
-                <div className="modal-header">
-                  <h3>{isEdit ? "Edit" : "Add"} Payment Slip</h3>
-                  <button
-                    className="btn-close"
-                    onClick={() =>
-                      setModals((prev) => ({ ...prev, [type]: false }))
-                    }
-                  >
-                    ×
-                  </button>
-                </div>
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    handleSubmit(isEdit);
-                  }}
-                >
-                  <div className="form-group">
-                    <label>Month</label>
-                    <input
-                      type="month"
-                      name="month_paid"
-                      value={slip.month_paid}
-                      onChange={(e) => handleInputChange(e, isEdit)}
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Paid For</label>
-                    <select
-                      name="status"
-                      value={slip.status}
-                      onChange={(e) => handleInputChange(e, isEdit)}
-                    >
-                      <option value="current">Current Month</option>
-                      <option value="previous">Previous Month</option>
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label>Comment</label>
-                    <textarea
-                      name="comment"
-                      value={slip.comment}
-                      onChange={(e) => handleInputChange(e, isEdit)}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>File (PDF/Image)</label>
-                    <input
-                      type="file"
-                      name="file"
-                      accept=".pdf,image/*"
-                      onChange={(e) => handleInputChange(e, isEdit)}
-                      {...(!isEdit && { required: true })}
-                    />
-                  </div>
-                  <div className="form-actions">
-                    <button
-                      type="button"
-                      className="btn btn-outline"
-                      onClick={() =>
-                        setModals((prev) => ({ ...prev, [type]: false }))
-                      }
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="btn btn-primary"
-                      disabled={btnLoading}
-                    >
-                      {btnLoading
-                        ? isEdit
-                          ? "Saving..."
-                          : "Uploading..."
-                        : isEdit
-                        ? "Save Changes"
-                        : "Upload"}
-                    </button>
-                  </div>
-                </form>
+        return modals[type] && (
+          <div className="modal" key={type}>
+            <div className="modal-content">
+              <div className="modal-header">
+                <h3>{isEdit ? "Edit" : "Add"} Payment Slip</h3>
+                <button className="btn-close" onClick={() => setModals((prev) => ({ ...prev, [type]: false }))}>×</button>
               </div>
+              <form onSubmit={(e) => { e.preventDefault(); handleSubmit(isEdit); }}>
+                <div className="form-group">
+                  <label>Month</label>
+                  <input type="month" name="month_paid" value={slip.month_paid} onChange={(e) => handleInputChange(e, isEdit)} required />
+                </div>
+                <div className="form-group">
+                  <label>Paid For</label>
+                  <select name="status" value={slip.status} onChange={(e) => handleInputChange(e, isEdit)}>
+                    <option value="current">Current Month</option>
+                    <option value="previous">Previous Month</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Comment</label>
+                  <textarea name="comment" value={slip.comment} onChange={(e) => handleInputChange(e, isEdit)} />
+                </div>
+                <div className="form-group">
+                  <label>File (PDF/Image)</label>
+                  <input type="file" name="file" accept=".pdf,image/*" onChange={(e) => handleInputChange(e, isEdit)} {...(!isEdit && { required: true })} />
+                </div>
+                <div className="form-actions">
+                  <button type="button" className="btn btn-outline" onClick={() => setModals((prev) => ({ ...prev, [type]: false }))}>Cancel</button>
+                  <button type="submit" className="btn btn-primary" disabled={btnLoading}>{btnLoading ? (isEdit ? "Saving..." : "Uploading...") : (isEdit ? "Save Changes" : "Upload")}</button>
+                </div>
+              </form>
             </div>
-          )
+          </div>
         );
       })}
 
@@ -404,37 +242,15 @@ const PaymentSlips = () => {
           <div className="modal-content">
             <div className="modal-header">
               <h3>Slip Details</h3>
-              <button
-                className="btn-close"
-                onClick={() =>
-                  setModals((prev) => ({ ...prev, details: false }))
-                }
-              >
-                ×
-              </button>
+              <button className="btn-close" onClick={() => setModals((prev) => ({ ...prev, details: false }))}>×</button>
             </div>
             <div className="modal-body">
-              <p>
-                <strong>Month:</strong> {activeSlip.month_paid}
-              </p>
-              <p>
-                <strong>Paid For:</strong>{" "}
-                {activeSlip.status === "current"
-                  ? "Current Month"
-                  : "Previous Month"}
-              </p>
-              <p>
-                <strong>Your Comment:</strong>
-              </p>
-              <div className="comment-box">
-                {activeSlip.comment || "No comment"}
-              </div>
-              <p>
-                <strong>Admin Comment:</strong>
-              </p>
-              <div className="comment-box">
-                {activeSlip.admin_comment || "No admin comment yet"}
-              </div>
+              <p><strong>Month:</strong> {activeSlip.month_paid}</p>
+              <p><strong>Paid For:</strong> {activeSlip.status === "current" ? "Current Month" : "Previous Month"}</p>
+              <p><strong>Your Comment:</strong></p>
+              <div className="comment-box">{activeSlip.comment || "No comment"}</div>
+              <p><strong>Admin Comment:</strong></p>
+              <div className="comment-box">{activeSlip.admin_comment || "No admin comment yet"}</div>
             </div>
           </div>
         </div>
