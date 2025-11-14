@@ -15,7 +15,10 @@ const PaymentSlips = () => {
   const [success, setSuccess] = useState("");
   const [btnLoading, setBtnLoading] = useState(false);
 
-  const [modals, setModals] = useState({ add: false, edit: false, details: false });
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+
   const [activeSlip, setActiveSlip] = useState(null);
 
   const [newSlip, setNewSlip] = useState({
@@ -52,7 +55,7 @@ const PaymentSlips = () => {
     setNewSlip((prev) => ({ ...prev, client: clientId }));
   }, [navigate]);
 
-  // Load payment slips
+  // Load only the logged-in client's payment slips
   useEffect(() => {
     loadSlips();
   }, []);
@@ -75,7 +78,79 @@ const PaymentSlips = () => {
     }
   };
 
-  // Handle input changes
+  // Handle Add Slip
+  const handleAddSlip = async (e) => {
+    e.preventDefault();
+    clearMessages();
+    setBtnLoading(true);
+
+    try {
+      const formData = new FormData();
+      let formattedMonth = newSlip.month_paid;
+      if (formattedMonth?.length === 7) formattedMonth = `${formattedMonth}-01`;
+
+      formData.append("client", newSlip.client);
+      formData.append("month_paid", formattedMonth);
+      formData.append("status", newSlip.status);
+      formData.append("comment", newSlip.comment);
+      if (newSlip.file) formData.append("file", newSlip.file);
+
+      await addPaymentSlip(formData);
+
+      setShowAddModal(false);
+      setNewSlip({
+        client: localStorage.getItem("userId"),
+        month_paid: "",
+        status: "current",
+        comment: "",
+        file: null,
+      });
+      setSuccess("✅ Payment slip added successfully!");
+      await loadSlips();
+    } catch (err) {
+      console.error(err);
+      setError("❌ Failed to add payment slip.");
+    } finally {
+      setBtnLoading(false);
+    }
+  };
+
+  // Handle Edit Slip
+  const handleEditSlipSubmit = async (e) => {
+    e.preventDefault();
+    clearMessages();
+    setBtnLoading(true);
+
+    try {
+      const formData = new FormData();
+      let formattedMonth = editSlip.month_paid;
+      if (formattedMonth?.length === 7) formattedMonth = `${formattedMonth}-01`;
+
+      formData.append("month_paid", formattedMonth);
+      formData.append("status", editSlip.status);
+      formData.append("comment", editSlip.comment);
+      if (editSlip.file) formData.append("file", editSlip.file);
+
+      await updatePaymentSlip(editSlip.slip_id, formData);
+
+      setShowEditModal(false);
+      setEditSlip({
+        slip_id: "",
+        month_paid: "",
+        status: "current",
+        comment: "",
+        file: null,
+      });
+      setSuccess("✅ Payment slip updated successfully!");
+      await loadSlips();
+    } catch (err) {
+      console.error(err);
+      setError("❌ Failed to update payment slip.");
+    } finally {
+      setBtnLoading(false);
+    }
+  };
+
   const handleInputChange = (e, isEdit = false) => {
     const { name, value, files } = e.target;
     const val = name === "file" ? files[0] : value;
@@ -83,68 +158,17 @@ const PaymentSlips = () => {
     else setNewSlip((prev) => ({ ...prev, [name]: val }));
   };
 
-  // Handle add/edit submission
-  const handleSubmit = async (isEdit = false) => {
-    clearMessages();
-    setBtnLoading(true);
-    try {
-      const slip = isEdit ? editSlip : newSlip;
-      const formData = new FormData();
-      const formattedMonth =
-        slip.month_paid?.length === 7 ? `${slip.month_paid}-01` : slip.month_paid;
-      if (!isEdit) formData.append("client", slip.client);
-      formData.append("month_paid", formattedMonth);
-      formData.append("status", slip.status);
-      formData.append("comment", slip.comment);
-      if (slip.file) formData.append("file", slip.file);
-
-      if (isEdit) await updatePaymentSlip(slip.slip_id, formData);
-      else await addPaymentSlip(formData);
-
-      setModals((prev) => ({ ...prev, [isEdit ? "edit" : "add"]: false }));
-      if (isEdit)
-        setEditSlip({ slip_id: "", month_paid: "", status: "current", comment: "", file: null });
-      else
-        setNewSlip({
-          client: localStorage.getItem("userId"),
-          month_paid: "",
-          status: "current",
-          comment: "",
-          file: null,
-        });
-
-      setSuccess(isEdit ? "✅ Payment slip updated successfully!" : "✅ Payment slip added successfully!");
-      await loadSlips();
-    } catch (err) {
-      console.error(err);
-      setError(isEdit ? "❌ Failed to update payment slip." : "❌ Failed to add payment slip.");
-    } finally {
-      setBtnLoading(false);
+  // 🔥 UPDATED: Simple file viewing with full URLs
+  const handleViewFile = (fileUrl) => {
+    if (!fileUrl) {
+      alert("File haipatikani");
+      return;
     }
+    
+    // Direct file access - browser will handle PDF/Images automatically
+    window.open(fileUrl, '_blank');
   };
 
-  // View files securely
-  const handleViewFile = async (fileUrl) => {
-    if (!fileUrl) return alert("No file uploaded yet.");
-
-    const token = localStorage.getItem("authToken");
-    try {
-      const res = await fetch(fileUrl.replace(/^http:\/\//i, "https://"), {
-        headers: { Authorization: `Token ${token}` },
-      });
-      if (!res.ok) {
-        if (res.status === 404) throw new Error("File not found on server.");
-        throw new Error("Failed to fetch file.");
-      }
-      const blob = await res.blob();
-      window.open(URL.createObjectURL(blob), "_blank");
-    } catch (err) {
-      console.error("Error opening file:", err);
-      alert(err.message);
-    }
-  };
-
-  // Delete slip
   const handleDeleteSlip = async (slipId) => {
     if (!window.confirm("Are you sure you want to delete this slip?")) return;
     try {
@@ -165,12 +189,12 @@ const PaymentSlips = () => {
       comment: slip.comment || "",
       file: null,
     });
-    setModals((prev) => ({ ...prev, edit: true }));
+    setShowEditModal(true);
   };
 
   const openDetailsModal = (slip) => {
     setActiveSlip(slip);
-    setModals((prev) => ({ ...prev, details: true }));
+    setShowDetailsModal(true);
   };
 
   return (
@@ -185,12 +209,7 @@ const PaymentSlips = () => {
       <div className="card">
         <div className="card-header">
           <h3>Payment Slips</h3>
-          <button
-            className="btn btn-primary"
-            onClick={() => setModals((prev) => ({ ...prev, add: true }))}
-          >
-            + Add Payment Slip
-          </button>
+          <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>+ Add Payment Slip</button>
         </div>
 
         {loading ? (
@@ -201,11 +220,9 @@ const PaymentSlips = () => {
             rows={slips.map((s) => ({
               Month: s.month_paid || "-",
               "Paid For": s.status === "current" ? "Current Month" : "Previous Month",
+              // 🔥 UPDATED: Use file_url and receipt_url from service
               File: (
-                <button
-                  className="btn btn-outline"
-                  onClick={() => handleViewFile(s.file_url)}
-                >
+                <button className="btn btn-outline" onClick={() => handleViewFile(s.file_url)}>
                   View Slip
                 </button>
               ),
@@ -223,12 +240,8 @@ const PaymentSlips = () => {
               ),
               Actions: (
                 <>
-                  <button className="btn btn-outline" onClick={() => openEditModal(s)}>
-                    Edit
-                  </button>
-                  <button className="btn btn-sm btn-danger" onClick={() => handleDeleteSlip(s.slip_id)}>
-                    Delete
-                  </button>
+                  <button className="btn btn-outline" onClick={() => openEditModal(s)}>Edit</button>
+                  <button className="btn btn-sm btn-danger" onClick={() => handleDeleteSlip(s.slip_id)}>Delete</button>
                 </>
               ),
             }))}
@@ -236,108 +249,261 @@ const PaymentSlips = () => {
         )}
       </div>
 
-      {/* Add/Edit Modals */}
-      {["add", "edit"].map((type) => {
-        const isEdit = type === "edit";
-        const slip = isEdit ? editSlip : newSlip;
-        return modals[type] && (
-          <div className="modal" key={type}>
-            <div className="modal-content">
-              <div className="modal-header">
-                <h3>{isEdit ? "Edit" : "Add"} Payment Slip</h3>
-                <button
-                  className="btn-close"
-                  onClick={() => setModals((prev) => ({ ...prev, [type]: false }))}
+      {/* Add Modal */}
+      {showAddModal && (
+        <div className="modal">
+          <div className="modal-content">
+            <div className="modal-header"><h3>Add Payment Slip</h3></div>
+            <form onSubmit={handleAddSlip}>
+              <div className="form-group">
+                <label>Month</label>
+                <input 
+                  type="month" 
+                  name="month_paid" 
+                  value={newSlip.month_paid} 
+                  onChange={handleInputChange} 
+                  required 
+                />
+              </div>
+              <div className="form-group">
+                <label>Paid For</label>
+                <select name="status" value={newSlip.status} onChange={handleInputChange}>
+                  <option value="current">Current Month</option>
+                  <option value="previous">Previous Month</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Comment</label>
+                <textarea 
+                  name="comment" 
+                  value={newSlip.comment} 
+                  onChange={handleInputChange}
+                  placeholder="Optional comment..."
+                />
+              </div>
+              <div className="form-group">
+                <label>File (PDF/Image)</label>
+                <input 
+                  type="file" 
+                  name="file" 
+                  accept=".pdf,image/*" 
+                  onChange={handleInputChange} 
+                  required 
+                />
+                <small style={{color: '#666', fontSize: '12px'}}>
+                  Supported formats: PDF, JPG, PNG, GIF
+                </small>
+              </div>
+              <div className="form-actions">
+                <button 
+                  type="button" 
+                  className="btn btn-outline" 
+                  onClick={() => setShowAddModal(false)}
+                  disabled={btnLoading}
                 >
-                  ×
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn btn-primary" 
+                  disabled={btnLoading}
+                >
+                  {btnLoading ? "Uploading..." : "Upload"}
                 </button>
               </div>
-              <form onSubmit={(e) => { e.preventDefault(); handleSubmit(isEdit); }}>
-                <div className="form-group">
-                  <label>Month</label>
-                  <input
-                    type="month"
-                    name="month_paid"
-                    value={slip.month_paid}
-                    onChange={(e) => handleInputChange(e, isEdit)}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Paid For</label>
-                  <select name="status" value={slip.status} onChange={(e) => handleInputChange(e, isEdit)}>
-                    <option value="current">Current Month</option>
-                    <option value="previous">Previous Month</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Comment</label>
-                  <textarea
-                    name="comment"
-                    value={slip.comment}
-                    onChange={(e) => handleInputChange(e, isEdit)}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>File (PDF/Image)</label>
-                  <input
-                    type="file"
-                    name="file"
-                    accept=".pdf,image/*"
-                    onChange={(e) => handleInputChange(e, isEdit)}
-                    {...(!isEdit && { required: true })}
-                  />
-                </div>
-                <div className="form-actions">
-                  <button
-                    type="button"
-                    className="btn btn-outline"
-                    onClick={() => setModals((prev) => ({ ...prev, [type]: false }))}
-                  >
-                    Cancel
-                  </button>
-                  <button type="submit" className="btn btn-primary" disabled={btnLoading}>
-                    {btnLoading ? (isEdit ? "Saving..." : "Uploading...") : (isEdit ? "Save Changes" : "Upload")}
-                  </button>
-                </div>
-              </form>
-            </div>
+            </form>
           </div>
-        );
-      })}
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {showEditModal && (
+        <div className="modal">
+          <div className="modal-content">
+            <div className="modal-header"><h3>Edit Payment Slip</h3></div>
+            <form onSubmit={handleEditSlipSubmit}>
+              <div className="form-group">
+                <label>Month</label>
+                <input 
+                  type="month" 
+                  name="month_paid" 
+                  value={editSlip.month_paid} 
+                  onChange={(e) => handleInputChange(e, true)} 
+                  required 
+                />
+              </div>
+              <div className="form-group">
+                <label>Paid For</label>
+                <select 
+                  name="status" 
+                  value={editSlip.status} 
+                  onChange={(e) => handleInputChange(e, true)}
+                >
+                  <option value="current">Current Month</option>
+                  <option value="previous">Previous Month</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Comment</label>
+                <textarea 
+                  name="comment" 
+                  value={editSlip.comment} 
+                  onChange={(e) => handleInputChange(e, true)}
+                  placeholder="Optional comment..."
+                />
+              </div>
+              <div className="form-group">
+                <label>File (PDF/Image)</label>
+                <input 
+                  type="file" 
+                  name="file" 
+                  accept=".pdf,image/*" 
+                  onChange={(e) => handleInputChange(e, true)} 
+                />
+                <small style={{color: '#666', fontSize: '12px'}}>
+                  Leave empty to keep current file
+                </small>
+              </div>
+              <div className="form-actions">
+                <button 
+                  type="button" 
+                  className="btn btn-outline" 
+                  onClick={() => setShowEditModal(false)}
+                  disabled={btnLoading}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn btn-primary" 
+                  disabled={btnLoading}
+                >
+                  {btnLoading ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Details Modal */}
-      {modals.details && activeSlip && (
+      {showDetailsModal && activeSlip && (
         <div className="modal">
           <div className="modal-content">
             <div className="modal-header">
               <h3>Slip Details</h3>
-              <button
-                className="btn-close"
-                onClick={() => setModals((prev) => ({ ...prev, details: false }))}
-              >
-                ×
-              </button>
+              <button className="btn-close" onClick={() => setShowDetailsModal(false)}>×</button>
             </div>
             <div className="modal-body">
               <p><strong>Month:</strong> {activeSlip.month_paid}</p>
               <p><strong>Paid For:</strong> {activeSlip.status === "current" ? "Current Month" : "Previous Month"}</p>
+              <p><strong>Amount:</strong> {activeSlip.amount ? `TZS ${activeSlip.amount}` : "Not specified"}</p>
               <p><strong>Your Comment:</strong></p>
               <div className="comment-box">{activeSlip.comment || "No comment"}</div>
               <p><strong>Admin Comment:</strong></p>
               <div className="comment-box">{activeSlip.admin_comment || "No admin comment yet"}</div>
+              <div className="file-links" style={{ marginTop: '15px' }}>
+                <button 
+                  className="btn btn-outline" 
+                  onClick={() => handleViewFile(activeSlip.file_url)}
+                  style={{ marginRight: '10px' }}
+                >
+                  View Payment Slip
+                </button>
+                {activeSlip.receipt_url && (
+                  <button 
+                    className="btn btn-outline" 
+                    onClick={() => handleViewFile(activeSlip.receipt_url)}
+                  >
+                    View Receipt
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
       )}
 
       <style>{`
-        .modal { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; z-index:1000; padding:20px; }
-        .modal-content { background:#fff; border-radius:10px; padding:20px; max-width:600px; width:100%; position:relative; }
-        .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; }
-        .modal-body { display:flex; flex-direction:column; gap:10px; }
-        .btn-close { background:none; border:none; font-size:1.3rem; cursor:pointer; }
-        .comment-box { background:#f9f9f9; border:1px solid #ddd; padding:10px; border-radius:6px; white-space:pre-wrap; }
+        .modal { 
+          position: fixed; 
+          top:0; 
+          left:0; 
+          right:0; 
+          bottom:0; 
+          background: rgba(0,0,0,0.5);
+          display:flex; 
+          justify-content:center; 
+          align-items:center; 
+          z-index:1000; 
+          padding:20px; 
+        }
+        .modal-content { 
+          background:#fff; 
+          border-radius:10px; 
+          padding:20px; 
+          max-width:600px; 
+          width:100%; 
+          position:relative; 
+          max-height: 90vh;
+          overflow-y: auto;
+        }
+        .modal-header { 
+          display:flex; 
+          justify-content:space-between; 
+          align-items:center; 
+          margin-bottom:15px; 
+          border-bottom: 1px solid #eee;
+          padding-bottom: 10px;
+        }
+        .modal-body { 
+          display:flex; 
+          flex-direction:column; 
+          gap:10px; 
+        }
+        .btn-close { 
+          background:none; 
+          border:none; 
+          font-size:1.3rem; 
+          cursor:pointer; 
+          color: #666;
+        }
+        .comment-box { 
+          background:#f9f9f9; 
+          border:1px solid #ddd; 
+          padding:10px; 
+          border-radius:6px; 
+          white-space:pre-wrap; 
+          min-height: 60px;
+        }
+        .file-links {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+        }
+        .success-message {
+          background: #d4edda;
+          color: #155724;
+          padding: 10px;
+          border-radius: 5px;
+          margin-bottom: 15px;
+          border: 1px solid #c3e6cb;
+          cursor: pointer;
+        }
+        .error-message {
+          background: #f8d7da;
+          color: #721c24;
+          padding: 10px;
+          border-radius: 5px;
+          margin-bottom: 15px;
+          border: 1px solid #f5c6cb;
+          cursor: pointer;
+        }
+        .loading-indicator {
+          text-align: center;
+          padding: 20px;
+          color: #666;
+        }
       `}</style>
     </div>
   );

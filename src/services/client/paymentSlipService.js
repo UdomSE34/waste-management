@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "/api/payment-slips/";
+const API_URL = "https://back.deploy.tz/api/payment-slips/"; // 🔥 FULL URL
 
 export const api = axios.create({
   baseURL: API_URL,
@@ -22,7 +22,7 @@ api.interceptors.request.use(
 // ✅ Get all payment slips
 export const fetchPaymentSlips = async () => {
   try {
-    const res = await api.get(""); // no slash
+    const res = await api.get("");
     let slips = [];
 
     if (Array.isArray(res.data)) {
@@ -33,6 +33,13 @@ export const fetchPaymentSlips = async () => {
       console.warn("Unexpected API response format:", res.data);
       return [];
     }
+
+    // 🔥 ADD FULL URLs TO FILES
+    slips = slips.map(slip => ({
+      ...slip,
+      file_url: slip.file ? `https://back.deploy.tz${slip.file}` : null,
+      receipt_url: slip.receipt ? `https://back.deploy.tz${slip.receipt}` : null
+    }));
 
     return slips;
   } catch (error) {
@@ -55,7 +62,15 @@ export const addPaymentSlip = async (formData) => {
     const res = await api.post("", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
-    return res.data;
+    
+    // 🔥 ADD FULL URLs TO RESPONSE
+    const slipWithUrls = {
+      ...res.data,
+      file_url: res.data.file ? `https://back.deploy.tz${res.data.file}` : null,
+      receipt_url: res.data.receipt ? `https://back.deploy.tz${res.data.receipt}` : null
+    };
+    
+    return slipWithUrls;
   } catch (error) {
     console.error("❌ Error uploading payment slip:", {
       message: error.message,
@@ -77,7 +92,15 @@ export const updatePaymentSlip = async (slipId, formData) => {
     const res = await api.put(`${slipId}/`, formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
-    return res.data;
+    
+    // 🔥 ADD FULL URLs TO RESPONSE
+    const slipWithUrls = {
+      ...res.data,
+      file_url: res.data.file ? `https://back.deploy.tz${res.data.file}` : null,
+      receipt_url: res.data.receipt ? `https://back.deploy.tz${res.data.receipt}` : null
+    };
+    
+    return slipWithUrls;
   } catch (error) {
     console.error("❌ Error updating payment slip:", {
       message: error.message,
@@ -105,3 +128,25 @@ export const deletePaymentSlip = async (slipId) => {
   }
 };
 
+// 🔥 NEW: Direct file download function
+export const downloadFile = async (fileUrl) => {
+  if (!fileUrl) throw new Error("File URL is required");
+  
+  try {
+    const token = localStorage.getItem("authToken");
+    const response = await fetch(fileUrl, {
+      headers: {
+        'Authorization': `Token ${token}`
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    return response.blob();
+  } catch (error) {
+    console.error("❌ Error downloading file:", error);
+    throw error;
+  }
+};
