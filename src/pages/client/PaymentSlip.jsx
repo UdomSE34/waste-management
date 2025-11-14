@@ -110,12 +110,21 @@ const PaymentSlips = () => {
   // View files securely
 const handleViewFile = async (filePath) => {
   if (!filePath) return alert("No file uploaded yet.");
-  
-  const fileUrl = filePath.startsWith("http") ? filePath : `${BACKEND_URL}/media/${filePath.replace(/^\/?media\/?/, '')}`;
+
+  // Ensure HTTPS
+  let fileUrl;
+  if (filePath.startsWith("http")) {
+    fileUrl = filePath.replace(/^http:\/\//i, "https://"); // force HTTPS
+  } else {
+    fileUrl = `${BACKEND_URL}/media/${filePath.replace(/^\/?media\/?/, '')}`;
+  }
+
   const token = localStorage.getItem("authToken");
 
   try {
-    const res = await fetch(fileUrl, { headers: { Authorization: `Token ${token}` } });
+    const res = await fetch(fileUrl, {
+      headers: { Authorization: `Token ${token}` },
+    });
     if (!res.ok) {
       if (res.status === 404) throw new Error("File not found on server.");
       throw new Error("Failed to fetch file.");
