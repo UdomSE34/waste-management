@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // 🔥 FOR LOCAL TESTING
-const API_URL = 'http://127.0.0.1:8000//api/public';
+const API_URL = 'https://back.deploy.tz/api/public';
 
 // -----------------------------
 // Fetch all hotels
@@ -112,7 +112,7 @@ export const downloadDocument = (url) => {
   // Ensure URL is absolute for local development
   let finalUrl = url;
   if (url.startsWith('/media/')) {
-    finalUrl = `http://127.0.0.1:8000/${url}`;
+    finalUrl = `https://back.deploy.tz${url}`;
   }
   
   window.open(finalUrl, '_blank');
