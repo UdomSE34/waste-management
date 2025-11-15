@@ -46,22 +46,30 @@ const PublicDashboard = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        
+        console.log("🚀 Starting data fetch...");
+
         // Fetch all data in parallel
         const [hotelsData, summaryData, documentsData] = await Promise.all([
-          getHotels().catch(err => {
+          getHotels().catch((err) => {
             console.error("Hotels fetch error:", err);
             return [];
           }),
-          getMonthlySummary(selectedMonth).catch(err => {
+          getMonthlySummary(selectedMonth).catch((err) => {
             console.error("Monthly summary fetch error:", err);
             return [];
           }),
-          getDocuments().catch(err => {
+          getDocuments().catch((err) => {
             console.error("Documents fetch error:", err);
             return [];
-          })
+          }),
         ]);
+
+        // 🔥 DEBUG: See what we're getting
+        console.log("🏨 Hotels data:", hotelsData);
+        console.log("📊 Summary data:", summaryData);
+        console.log("📄 Documents data:", documentsData);
+        console.log("📄 Documents data length:", documentsData.length);
+        console.log("📄 Documents data type:", typeof documentsData);
 
         // Set hotels
         setHotels(Array.isArray(hotelsData) ? hotelsData : []);
@@ -73,7 +81,8 @@ const PublicDashboard = () => {
             0
           );
           const totalPayments = summaryData.reduce(
-            (sum, item) => sum + (parseFloat(item.total_processed_payment) || 0),
+            (sum, item) =>
+              sum + (parseFloat(item.total_processed_payment) || 0),
             0
           );
           setMonthlySummary({ totalKg, totalPayments });
@@ -81,7 +90,9 @@ const PublicDashboard = () => {
           // Generate chart data
           const months = Array.from({ length: 12 }, (_, i) => {
             const date = new Date(new Date().getFullYear(), i, 1);
-            const monthLabel = date.toLocaleString("default", { month: "short" });
+            const monthLabel = date.toLocaleString("default", {
+              month: "short",
+            });
             const monthData = summaryData.find(
               (item) =>
                 item.month &&
@@ -91,8 +102,8 @@ const PublicDashboard = () => {
 
             return {
               name: monthLabel,
-              waste: (monthData?.total_processed_waste || 0),
-              payment: (parseFloat(monthData?.total_processed_payment) || 0),
+              waste: monthData?.total_processed_waste || 0,
+              payment: parseFloat(monthData?.total_processed_payment) || 0,
             };
           });
           setChartData(months);
@@ -101,8 +112,9 @@ const PublicDashboard = () => {
         // Set documents
         setDocuments(Array.isArray(documentsData) ? documentsData : []);
 
+        console.log("✅ Data fetch completed");
       } catch (err) {
-        console.error("Overall fetch error:", err);
+        console.error("❌ Overall fetch error:", err);
         setError("Failed to load data");
       } finally {
         setLoading(false);
@@ -115,22 +127,23 @@ const PublicDashboard = () => {
   // 🔥 FIXED: Safe document filtering
   const filteredDocuments = documents.filter((doc) => {
     // Check if doc exists and has required properties
-    if (!doc || typeof doc !== 'object') return false;
-    
+    if (!doc || typeof doc !== "object") return false;
+
     const matchesCategory =
-      selectedCategory === "all" || 
+      selectedCategory === "all" ||
       (doc.category && doc.category === selectedCategory);
-    
-    const matchesSearch = doc.name && 
-      typeof doc.name === 'string' && 
+
+    const matchesSearch =
+      doc.name &&
+      typeof doc.name === "string" &&
       doc.name.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     return matchesCategory && matchesSearch;
   });
 
   const getFileIcon = (type) => {
     if (!type) return <i className="bi bi-file-earmark file-icon"></i>;
-    
+
     switch (type.toLowerCase()) {
       case "pdf":
         return <i className="bi bi-file-earmark-pdf file-icon pdf"></i>;
@@ -147,7 +160,7 @@ const PublicDashboard = () => {
 
   const formatDate = (dateString) => {
     if (!dateString) return "Date not available";
-    
+
     try {
       const options = { year: "numeric", month: "long", day: "numeric" };
       return new Date(dateString).toLocaleDateString(undefined, options);
@@ -157,7 +170,7 @@ const PublicDashboard = () => {
   };
 
   const openDocument = (doc) => {
-    if (doc && typeof doc === 'object') {
+    if (doc && typeof doc === "object") {
       setSelectedDocument(doc);
     }
   };
@@ -186,9 +199,7 @@ const PublicDashboard = () => {
             <i className="bi bi-exclamation-triangle"></i>
             <h3>Error Loading Data</h3>
             <p>{error}</p>
-            <button onClick={() => window.location.reload()}>
-              Try Again
-            </button>
+            <button onClick={() => window.location.reload()}>Try Again</button>
           </div>
         </div>
       </div>

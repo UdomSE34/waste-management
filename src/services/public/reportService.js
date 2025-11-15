@@ -47,61 +47,154 @@ export const getMonthlySummary = async (month) => {
 };
 
 // -----------------------------
-// Fetch all documents (from MonthlySummary reports)
+// Fetch all documents (from MonthlySummary reports) - 🔥 UPDATED
 // -----------------------------
 export const getDocuments = async () => {
   try {
+    console.log("🔄 Fetching documents from:", `${API_URL}/documents/`);
     const response = await axios.get(`${API_URL}/documents/`);
-    return response.data;
-  } catch (error) {
-    console.error("Error fetching documents:", error);
     
-    // 🔥 FALLBACK: Try monthly-summary endpoint
-    try {
-      const summaries = await getMonthlySummary();
+    // 🔥 DEBUG: See what the API actually returns
+    console.log("📄 RAW DOCUMENTS API RESPONSE:", response.data);
+    
+    let data = response.data;
+    
+    // Handle different response formats
+    if (data.results) {
+      data = data.results; // Paginated response
+      console.log("📊 Paginated data results:", data);
+    }
+    
+    // 🔥 TRANSFORM DATA to match frontend expectations
+    const transformedDocuments = data.map((item, index) => {
+      console.log(`📋 Processing item ${index}:`, item);
+      
+      // Extract month name safely
+      let monthName = 'Unknown Month';
+      try {
+        if (item.month) {
+          monthName = new Date(item.month).toLocaleString('default', { 
+            month: 'long', 
+            year: 'numeric' 
+          });
+        }
+      } catch (e) {
+        console.error("Error parsing month:", e);
+      }
+      
       const documents = [];
-
-      summaries.forEach(summary => {
-        const monthName = new Date(summary.month).toLocaleString('default', { 
-          month: 'long', 
-          year: 'numeric' 
+      
+      // 🔥 CHECK ALL POSSIBLE FILE FIELD NAMES
+      const wasteReport = item.processed_waste_report || item.waste_report_url;
+      const paymentReport = item.processed_payment_report || item.payment_report_url;
+      
+      console.log(`📎 File check for ${monthName}:`, {
+        wasteReport: !!wasteReport,
+        paymentReport: !!paymentReport,
+        wasteReportValue: wasteReport,
+        paymentReportValue: paymentReport
+      });
+      
+      // Create document for waste report if it exists
+      if (wasteReport) {
+        documents.push({
+          id: item.summary_id || item.id || `waste_${index}`,
+          name: `Waste Report - ${monthName}`,
+          type: 'pdf',
+          category: 'reports',
+          uploadDate: item.updated_at || item.created_at || new Date().toISOString(),
+          size: 'N/A',
+          url: wasteReport
         });
-
-        if (summary.processed_waste_report) {
-          documents.push({
-            id: summary.summary_id,
+      }
+      
+      // Create document for payment report if it exists
+      if (paymentReport) {
+        documents.push({
+          id: (item.summary_id || item.id || `payment_${index}`) + '_payment',
+          name: `Payment Report - ${monthName}`,
+          type: 'pdf',
+          category: 'payments',
+          uploadDate: item.updated_at || item.created_at || new Date().toISOString(),
+          size: 'N/A',
+          url: paymentReport
+        });
+      }
+      
+      return documents;
+    }).flat(); // Flatten array of arrays into single array
+    
+    console.log("🎯 FINAL TRANSFORMED DOCUMENTS:", transformedDocuments);
+    return transformedDocuments;
+    
+  } catch (error) {
+    console.error("❌ Error fetching documents:", error);
+    console.error("Error details:", error.response?.data);
+    
+    // 🔥 IMPROVED FALLBACK: Try monthly-summary as fallback
+    try {
+      console.log("🔄 Trying fallback with monthly summaries...");
+      const summaries = await getMonthlySummary();
+      console.log("📊 Fallback summaries:", summaries);
+      
+      const fallbackDocuments = summaries.map((summary, index) => {
+        let monthName = 'Unknown Month';
+        try {
+          if (summary.month) {
+            monthName = new Date(summary.month).toLocaleString('default', { 
+              month: 'long', 
+              year: 'numeric' 
+            });
+          }
+        } catch (e) {
+          console.error("Error parsing month in fallback:", e);
+        }
+        
+        const docs = [];
+        
+        // Check for waste report in fallback
+        const wasteReport = summary.processed_waste_report || summary.waste_report_url;
+        if (wasteReport) {
+          docs.push({
+            id: (summary.summary_id || summary.id || `fallback_waste_${index}`),
             name: `Waste Report - ${monthName}`,
             type: 'pdf',
             category: 'reports',
-            uploadDate: summary.updated_at || summary.created_at,
+            uploadDate: summary.updated_at || summary.created_at || new Date().toISOString(),
             size: 'N/A',
-            url: summary.processed_waste_report
+            url: wasteReport
           });
         }
-
-        if (summary.processed_payment_report) {
-          documents.push({
-            id: summary.summary_id + '_payment',
+        
+        // Check for payment report in fallback
+        const paymentReport = summary.processed_payment_report || summary.payment_report_url;
+        if (paymentReport) {
+          docs.push({
+            id: (summary.summary_id || summary.id || `fallback_payment_${index}`) + '_payment',
             name: `Payment Report - ${monthName}`,
             type: 'pdf',
             category: 'payments',
-            uploadDate: summary.updated_at || summary.created_at,
+            uploadDate: summary.updated_at || summary.created_at || new Date().toISOString(),
             size: 'N/A',
-            url: summary.processed_payment_report
+            url: paymentReport
           });
         }
-      });
-
-      return documents;
+        
+        return docs;
+      }).flat();
+      
+      console.log("📦 FALLBACK DOCUMENTS:", fallbackDocuments);
+      return fallbackDocuments;
+      
     } catch (fallbackError) {
-      console.error("Fallback also failed:", fallbackError);
+      console.error("❌ Fallback also failed:", fallbackError);
       return [];
     }
   }
 };
 
 // -----------------------------
-// Download document
+// Download document - 🔥 IMPROVED
 // -----------------------------
 export const downloadDocument = (url) => {
   if (!url) {
@@ -109,11 +202,18 @@ export const downloadDocument = (url) => {
     return;
   }
   
-  // Ensure URL is absolute for local development
+  console.log("📥 Downloading document from URL:", url);
+  
+  // Ensure URL is absolute
   let finalUrl = url;
   if (url.startsWith('/media/')) {
     finalUrl = `https://back.deploy.tz${url}`;
+  } else if (url.startsWith('media/')) {
+    finalUrl = `https://back.deploy.tz/${url}`;
+  } else if (!url.startsWith('http')) {
+    finalUrl = `https://back.deploy.tz${url.startsWith('/') ? '' : '/'}${url}`;
   }
   
+  console.log("🌐 Final download URL:", finalUrl);
   window.open(finalUrl, '_blank');
 };
