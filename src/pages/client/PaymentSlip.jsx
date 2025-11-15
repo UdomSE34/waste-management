@@ -158,15 +158,52 @@ const PaymentSlips = () => {
     else setNewSlip((prev) => ({ ...prev, [name]: val }));
   };
 
-  // 🔥 UPDATED: Simple file viewing with full URLs
+  // 🔥 FIXED: Better file viewing with URL validation
   const handleViewFile = (fileUrl) => {
     if (!fileUrl) {
       alert("File haipatikani");
       return;
     }
     
+    console.log("Original file URL:", fileUrl); // For debugging
+    
+    // 🔥 CHECK IF URL IS VALID
+    let finalUrl = fileUrl;
+    
+    // If URL contains double domain (the bug we saw)
+    if (fileUrl.includes('back.deploy.tzhttp//back.deploy.tz')) {
+      // Extract the correct path and rebuild URL
+      const pathMatch = fileUrl.match(/\/media\/.*$/);
+      if (pathMatch) {
+        finalUrl = `https://back.deploy.tz${pathMatch[0]}`;
+      }
+    }
+    // If it's a relative path (starts with /media/)
+    else if (fileUrl.startsWith('/media/')) {
+      finalUrl = `https://back.deploy.tz${fileUrl}`;
+    }
+    // If it's already a proper absolute URL, use as is
+    else if (fileUrl.startsWith('http')) {
+      finalUrl = fileUrl;
+    }
+    
+    console.log("Final file URL:", finalUrl); // For debugging
+    
     // Direct file access - browser will handle PDF/Images automatically
-    window.open(fileUrl, '_blank');
+    window.open(finalUrl, '_blank');
+  };
+
+  // 🔥 NEW: Debug function to check file URLs
+  const debugFileUrls = () => {
+    console.log("=== FILE URL DEBUG ===");
+    slips.forEach((slip, index) => {
+      console.log(`Slip ${index}:`, {
+        file: slip.file,
+        file_url: slip.file_url,
+        receipt: slip.receipt,
+        receipt_url: slip.receipt_url
+      });
+    });
   };
 
   const handleDeleteSlip = async (slipId) => {
@@ -201,6 +238,22 @@ const PaymentSlips = () => {
     <div className="content">
       <div className="page-header">
         <h2>Payment Slips</h2>
+        {/* 🔥 DEBUG BUTTON - Remove in production */}
+        <button 
+          onClick={debugFileUrls}
+          style={{ 
+            fontSize: '12px', 
+            padding: '5px 10px',
+            background: '#ff6b6b',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            marginLeft: '10px'
+          }}
+        >
+          Debug URLs
+        </button>
       </div>
 
       {success && <div className="success-message" onClick={() => setSuccess("")}>{success}</div>}
@@ -220,14 +273,20 @@ const PaymentSlips = () => {
             rows={slips.map((s) => ({
               Month: s.month_paid || "-",
               "Paid For": s.status === "current" ? "Current Month" : "Previous Month",
-              // 🔥 UPDATED: Use file_url and receipt_url from service
+              // 🔥 UPDATED: Use ORIGINAL file paths (not file_url) to avoid double URLs
               File: (
-                <button className="btn btn-outline" onClick={() => handleViewFile(s.file_url)}>
+                <button 
+                  className="btn btn-outline" 
+                  onClick={() => handleViewFile(s.file)} // Use s.file NOT s.file_url
+                >
                   View Slip
                 </button>
               ),
-              Receipt: s.receipt_url ? (
-                <button className="btn btn-outline" onClick={() => handleViewFile(s.receipt_url)}>
+              Receipt: s.receipt ? (
+                <button 
+                  className="btn btn-outline" 
+                  onClick={() => handleViewFile(s.receipt)} // Use s.receipt NOT s.receipt_url
+                >
                   View Receipt
                 </button>
               ) : (
@@ -405,15 +464,15 @@ const PaymentSlips = () => {
               <div className="file-links" style={{ marginTop: '15px' }}>
                 <button 
                   className="btn btn-outline" 
-                  onClick={() => handleViewFile(activeSlip.file_url)}
+                  onClick={() => handleViewFile(activeSlip.file)} // Use activeSlip.file NOT activeSlip.file_url
                   style={{ marginRight: '10px' }}
                 >
                   View Payment Slip
                 </button>
-                {activeSlip.receipt_url && (
+                {activeSlip.receipt && (
                   <button 
                     className="btn btn-outline" 
-                    onClick={() => handleViewFile(activeSlip.receipt_url)}
+                    onClick={() => handleViewFile(activeSlip.receipt)} // Use activeSlip.receipt NOT activeSlip.receipt_url
                   >
                     View Receipt
                   </button>

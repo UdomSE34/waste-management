@@ -1,6 +1,7 @@
 import axios from "axios";
 
-const API_URL = "https://back.deploy.tz/api/payment-slips/"; // 🔥 FULL URL
+const API_URL = "https://back.deploy.tz/api/payment-slips/";
+const BASE_MEDIA_URL = "https://back.deploy.tz"; // 🔥 SEPARATE MEDIA URL
 
 export const api = axios.create({
   baseURL: API_URL,
@@ -28,17 +29,17 @@ export const fetchPaymentSlips = async () => {
     if (Array.isArray(res.data)) {
       slips = res.data;
     } else if (res.data && Array.isArray(res.data.results)) {
-      slips = res.data.results; // handle paginated response
+      slips = res.data.results;
     } else {
       console.warn("Unexpected API response format:", res.data);
       return [];
     }
 
-    // 🔥 ADD FULL URLs TO FILES
+    // 🔥 FIXED: Check if URL is already absolute before converting
     slips = slips.map(slip => ({
       ...slip,
-      file_url: slip.file ? `https://back.deploy.tz${slip.file}` : null,
-      receipt_url: slip.receipt ? `https://back.deploy.tz${slip.receipt}` : null
+      file_url: slip.file ? (isAbsoluteUrl(slip.file) ? slip.file : `${BASE_MEDIA_URL}${slip.file}`) : null,
+      receipt_url: slip.receipt ? (isAbsoluteUrl(slip.receipt) ? slip.receipt : `${BASE_MEDIA_URL}${slip.receipt}`) : null
     }));
 
     return slips;
@@ -63,11 +64,11 @@ export const addPaymentSlip = async (formData) => {
       headers: { "Content-Type": "multipart/form-data" },
     });
     
-    // 🔥 ADD FULL URLs TO RESPONSE
+    // 🔥 FIXED: Check if URL is already absolute
     const slipWithUrls = {
       ...res.data,
-      file_url: res.data.file ? `https://back.deploy.tz${res.data.file}` : null,
-      receipt_url: res.data.receipt ? `https://back.deploy.tz${res.data.receipt}` : null
+      file_url: res.data.file ? (isAbsoluteUrl(res.data.file) ? res.data.file : `${BASE_MEDIA_URL}${res.data.file}`) : null,
+      receipt_url: res.data.receipt ? (isAbsoluteUrl(res.data.receipt) ? res.data.receipt : `${BASE_MEDIA_URL}${res.data.receipt}`) : null
     };
     
     return slipWithUrls;
@@ -93,11 +94,11 @@ export const updatePaymentSlip = async (slipId, formData) => {
       headers: { "Content-Type": "multipart/form-data" },
     });
     
-    // 🔥 ADD FULL URLs TO RESPONSE
+    // 🔥 FIXED: Check if URL is already absolute
     const slipWithUrls = {
       ...res.data,
-      file_url: res.data.file ? `https://back.deploy.tz${res.data.file}` : null,
-      receipt_url: res.data.receipt ? `https://back.deploy.tz${res.data.receipt}` : null
+      file_url: res.data.file ? (isAbsoluteUrl(res.data.file) ? res.data.file : `${BASE_MEDIA_URL}${res.data.file}`) : null,
+      receipt_url: res.data.receipt ? (isAbsoluteUrl(res.data.receipt) ? res.data.receipt : `${BASE_MEDIA_URL}${res.data.receipt}`) : null
     };
     
     return slipWithUrls;
@@ -148,5 +149,24 @@ export const downloadFile = async (fileUrl) => {
   } catch (error) {
     console.error("❌ Error downloading file:", error);
     throw error;
+  }
+};
+
+// 🔥 NEW: Helper function to check if URL is already absolute
+const isAbsoluteUrl = (url) => {
+  if (!url) return false;
+  return url.startsWith('http://') || url.startsWith('https://');
+};
+
+// 🔥 NEW: Safe file URL converter (use this in your component)
+export const getSafeFileUrl = (filePath) => {
+  if (!filePath) return null;
+  
+  if (isAbsoluteUrl(filePath)) {
+    return filePath; // Already absolute URL
+  } else if (filePath.startsWith('/')) {
+    return `${BASE_MEDIA_URL}${filePath}`; // Convert relative to absolute
+  } else {
+    return `${BASE_MEDIA_URL}/${filePath}`; // Handle missing slash
   }
 };
