@@ -33,6 +33,7 @@ const PublicDashboard = () => {
   });
   const [documents, setDocuments] = useState([]);
   const [chartData, setChartData] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const categories = [
     { id: "all", name: "All Documents" },
@@ -41,51 +42,57 @@ const PublicDashboard = () => {
   ];
 
   useEffect(() => {
-    getHotels()
-      .then((data) => setHotels(data))
-      .catch((err) => console.error("Hotels fetch error:", err));
-
-    getMonthlySummary(selectedMonth)
-      .then((data) => {
-        const totalKg = data.reduce(
-          (sum, item) =>
-            sum +
-            (item.total_processed_waste || 0),
-          0
-        );
-        const totalPayments = data.reduce(
-          (sum, item) =>
-            sum +
-            (parseFloat(item.total_processed_payment) || 0),
-          0
-        );
-        setMonthlySummary({ totalKg, totalPayments });
-
-        const months = Array.from({ length: 12 }, (_, i) => {
-          const date = new Date(new Date().getFullYear(), i, 1);
-          const monthLabel = date.toLocaleString("default", { month: "short" });
-          const monthData = data.find(
-            (item) =>
-              new Date(item.month).getMonth() === date.getMonth() - 1 &&
-              new Date(item.month).getFullYear() === date.getFullYear()
-          );
-
-          return {
-            name: monthLabel,
-            waste:
-              (monthData?.total_processed_waste || 0),
-            payment:
-              (parseFloat(monthData?.total_processed_payment) || 0),
-          };
-        });
-        setChartData(months);
-      })
-      .catch((err) => console.error("Monthly summary fetch error:", err));
-
-    getDocuments()
-      .then((data) => setDocuments(data))
-      .catch((err) => console.error("Documents fetch error:", err));
+    loadData();
   }, [selectedMonth]);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      // Load hotels
+      const hotelsData = await getHotels();
+      setHotels(hotelsData);
+
+      // Load monthly summaries
+      const summaryData = await getMonthlySummary();
+      processSummaryData(summaryData);
+
+      // Load documents
+      const docsData = await getDocuments();
+      setDocuments(docsData);
+
+    } catch (err) {
+      console.error("Data fetch error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const processSummaryData = (data) => {
+    if (!data || data.length === 0) return;
+
+    // Calculate totals from ALL months
+    const totalKg = data.reduce(
+      (sum, item) => sum + (item.total_processed_waste || 0),
+      0
+    );
+    const totalPayments = data.reduce(
+      (sum, item) => sum + (parseFloat(item.total_processed_payment) || 0),
+      0
+    );
+    setMonthlySummary({ totalKg, totalPayments });
+
+    // Prepare chart data (last 12 months or all available)
+    const chartData = data
+      .slice(0, 12) // Last 12 entries
+      .map(item => ({
+        name: new Date(item.month).toLocaleString("default", { month: "short", year: 'numeric' }),
+        waste: item.total_processed_waste || 0,
+        payment: parseFloat(item.total_processed_payment) || 0,
+      }))
+      .reverse(); // Show oldest to newest
+
+    setChartData(chartData);
+  };
 
   const filteredDocuments = documents.filter((doc) => {
     const matchesCategory =
@@ -112,12 +119,24 @@ const PublicDashboard = () => {
   };
 
   const formatDate = (dateString) => {
-    const options = { year: "numeric", month: "long", day: "numeric" };
-    return new Date(dateString).toLocaleDateString(undefined, options);
+    try {
+      const options = { year: "numeric", month: "long", day: "numeric" };
+      return new Date(dateString).toLocaleDateString(undefined, options);
+    } catch {
+      return "Unknown date";
+    }
   };
 
   const openDocument = (doc) => setSelectedDocument(doc);
   const closeDocument = () => setSelectedDocument(null);
+
+  const handleDownload = (doc) => {
+    if (doc.url) {
+      downloadDocument(doc.url);
+    } else {
+      alert("Document URL not available");
+    }
+  };
 
   const renderDashboard = () => (
     <>
@@ -128,7 +147,7 @@ const PublicDashboard = () => {
           </div>
           <div className="stat-info">
             <h3>{monthlySummary.totalKg.toLocaleString()} kg</h3>
-            <p>Total Waste Collected</p>
+            <p>Total Waste Processed</p>
           </div>
         </div>
 
@@ -138,7 +157,7 @@ const PublicDashboard = () => {
           </div>
           <div className="stat-info">
             <h3>TZS {monthlySummary.totalPayments.toLocaleString()}</h3>
-            <p>Total Payments</p>
+            <p>Total Payments Processed</p>
           </div>
         </div>
 
@@ -148,25 +167,27 @@ const PublicDashboard = () => {
           </div>
           <div className="stat-info">
             <h3>{hotels.length}</h3>
-            <p>Customers Serviced</p>
+            <p>Hotels Serviced</p>
           </div>
         </div>
       </div>
 
       <div className="card">
         <div className="card-header">
-          <h3>Monthly Waste & Payment Trends</h3>
+          <h3>Waste & Payment Trends</h3>
           <div className="chart-actions">
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
+              disabled={loading}
             >
+              <option value="">All Time</option>
               {Array.from({ length: 12 }, (_, i) => {
                 const date = new Date(new Date().getFullYear(), i, 1);
                 const monthValue = date.toISOString().slice(0, 7);
                 return (
                   <option key={i} value={monthValue}>
-                    {date.toLocaleString("default", { month: "long" })}
+                    {date.toLocaleString("default", { month: "long", year: 'numeric' })}
                   </option>
                 );
               })}
@@ -174,17 +195,29 @@ const PublicDashboard = () => {
           </div>
         </div>
 
-        <ResponsiveContainer width="100%" height={350}>
-          <BarChart data={chartData} barSize={30}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Bar dataKey="waste" fill="#1e3a5f" name="Waste (kg)" />
-            <Bar dataKey="payment" fill="#28a745" name="Payments (TZS)" />
-          </BarChart>
-        </ResponsiveContainer>
+        {chartData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={350}>
+            <BarChart data={chartData} barSize={30}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip 
+                formatter={(value, name) => {
+                  if (name === "waste") return [`${value.toLocaleString()} kg`, "Waste"];
+                  if (name === "payment") return [`TZS ${value.toLocaleString()}`, "Payments"];
+                  return [value, name];
+                }}
+              />
+              <Legend />
+              <Bar dataKey="waste" fill="#1e3a5f" name="Waste (kg)" />
+              <Bar dataKey="payment" fill="#28a745" name="Payments (TZS)" />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="no-data">
+            <p>No data available for the selected period</p>
+          </div>
+        )}
       </div>
     </>
   );
@@ -219,7 +252,9 @@ const PublicDashboard = () => {
       </div>
 
       <div className="documents-grid">
-        {filteredDocuments.length > 0 ? (
+        {loading ? (
+          <div className="loading">Loading documents...</div>
+        ) : filteredDocuments.length > 0 ? (
           filteredDocuments.map((doc) => (
             <div key={doc.id} className="document-card">
               <div className="document-icon">{getFileIcon(doc.type)}</div>
@@ -238,7 +273,7 @@ const PublicDashboard = () => {
                 </button>
                 <button
                   className="btn-download"
-                  onClick={() => downloadDocument(doc.url)}
+                  onClick={() => handleDownload(doc)}
                 >
                   <i className="bi bi-download"></i> Download
                 </button>
@@ -266,12 +301,11 @@ const PublicDashboard = () => {
               <div className="document-preview">
                 {getFileIcon(selectedDocument.type)}
                 <p>
-                  Preview not available. Click below to download and view this
-                  file.
+                  Click below to download and view this file.
                 </p>
                 <button
                   className="btn-download-large"
-                  onClick={() => downloadDocument(selectedDocument.url)}
+                  onClick={() => handleDownload(selectedDocument)}
                 >
                   <i className="bi bi-download"></i> Download File
                 </button>
@@ -279,7 +313,7 @@ const PublicDashboard = () => {
               <div className="document-details">
                 <h4>Document Details</h4>
                 <p>
-                  <strong>Type:</strong> {selectedDocument.type}
+                  <strong>Type:</strong> {selectedDocument.type.toUpperCase()}
                 </p>
                 <p>
                   <strong>Category:</strong> {selectedDocument.category}
@@ -301,36 +335,31 @@ const PublicDashboard = () => {
 
   const renderCustomers = () => (
     <div className="card">
-      <h3>All Customers</h3>
-      <table className="data-table">
-        <thead>
-          <tr>
-            <th>Customer Name</th>
-            <th>Address</th>
-            <th>Contact</th>
-            <th>Hadhi</th>
-            {/* <th>Status</th> */}
-          </tr>
-        </thead>
-        <tbody>
-          {hotels.map((hotel) => (
-            <tr key={hotel.id}>
-              <td>{hotel.name}</td>
-              <td>{hotel.address || "N/A"}</td>
-              <td>{hotel.contact_phone || "N/A"}</td>
-              <td>{hotel.hadhi || "N/A"}</td>
-              {/* <td>
-                <span className={`status ${hotel.status || ""}`}>
-                  {hotel.status
-                    ? hotel.status.charAt(0).toUpperCase() +
-                      hotel.status.slice(1)
-                    : "N/A"}
-                </span>
-              </td> */}
+      <h3>Our Hotel Partners</h3>
+      {loading ? (
+        <div className="loading">Loading hotels...</div>
+      ) : (
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>Hotel Name</th>
+              <th>Address</th>
+              <th>Contact</th>
+              <th>Category</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {hotels.map((hotel) => (
+              <tr key={hotel.id || hotel.hotel_id}>
+                <td>{hotel.name || "N/A"}</td>
+                <td>{hotel.address || "N/A"}</td>
+                <td>{hotel.contact_phone || hotel.phone || "N/A"}</td>
+                <td>{hotel.hadhi || hotel.category || "N/A"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 
@@ -361,6 +390,7 @@ const PublicDashboard = () => {
       <div className="main-content-public">
         <div className="header-public">
           <h2>Baraza La Mji Mkoa wa Kusini</h2>
+          <p>Transparent Waste Management Reporting</p>
         </div>
 
         {activeMenu === "dashboard" && renderDashboard()}

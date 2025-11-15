@@ -2,7 +2,7 @@ import axios from "axios";
 
 // Create Axios instance
 export const api = axios.create({
-  baseURL: "/api", // Django API base URL
+  baseURL: "https://back.deploy.tz/api", // 🔥 FULL URL
   timeout: 10000,
 });
 
@@ -22,24 +22,46 @@ api.interceptors.request.use(
 
 // Fetch all payment slips (optionally filtered by month)
 export const fetchPaymentSlips = async (month = "") => {
-  const params = month ? { month } : {};
-  const res = await api.get("/payment-slips/", { params });
-  return Array.isArray(res.data) ? res.data : res.data.results || [];
+  try {
+    const params = month ? { month } : {};
+    const res = await api.get("/payment-slips/", { params });
+    
+    let slips = Array.isArray(res.data) ? res.data : res.data.results || [];
+    
+    // 🔥 REMOVED: No URL conversion needed - use original file paths
+    return slips;
+  } catch (error) {
+    console.error("❌ Error fetching payment slips:", {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data,
+    });
+    throw error;
+  }
 };
 
 // ✅ Unified update function: amount, receipt, and admin comment
 export const updatePaymentSlip = async (slipId, { amount, receiptFile, adminComment }) => {
-  const formData = new FormData();
+  try {
+    const formData = new FormData();
 
-  if (amount !== undefined) formData.append("amount", amount);
-  if (receiptFile) formData.append("receipt", receiptFile);
-  if (adminComment !== undefined) formData.append("admin_comment", adminComment);
+    if (amount !== undefined) formData.append("amount", amount);
+    if (receiptFile) formData.append("receipt", receiptFile);
+    if (adminComment !== undefined) formData.append("admin_comment", adminComment);
 
-  const { data } = await api.patch(`/payment-slips/${slipId}/`, formData, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
-  });
+    const { data } = await api.patch(`/payment-slips/${slipId}/`, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
 
-  return data;
+    return data;
+  } catch (error) {
+    console.error("❌ Error updating payment slip:", {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data,
+    });
+    throw error;
+  }
 };

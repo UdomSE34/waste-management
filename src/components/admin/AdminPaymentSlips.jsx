@@ -60,23 +60,36 @@ const AdminPaymentSlips = () => {
     loadSlips(month);
   };
 
-  const getFileUrl = (slip, key) =>
-    slip[`${key}_url`] || slip[key] || slip[`${key}Url`] || slip[`${key}URL`] || null;
-
-  const handleViewFile = async (fileUrl) => {
-    if (!fileUrl) return;
-    try {
-      const token = localStorage.getItem("authToken");
-      const res = await fetch(fileUrl, { headers: { Authorization: `Token ${token}` } });
-      if (!res.ok) throw new Error("Failed to fetch file");
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      window.open(url, "_blank");
-      setTimeout(() => window.URL.revokeObjectURL(url), 10000);
-    } catch (err) {
-      console.error("Error opening file:", err);
-      alert("Failed to open file. You may not have permission.");
+  // 🔥 UPDATED: Better file URL handling
+  const getFileUrl = (filePath) => {
+    if (!filePath) return null;
+    
+    // If already absolute URL, use as is
+    if (filePath.startsWith('http')) {
+      return filePath;
     }
+    // If relative path, convert to absolute
+    else if (filePath.startsWith('/')) {
+      return `https://back.deploy.tz${filePath}`;
+    }
+    // Handle any other format
+    else {
+      return `https://back.deploy.tz/${filePath}`;
+    }
+  };
+
+  // 🔥 UPDATED: Simple file viewing
+  const handleViewFile = (filePath) => {
+    if (!filePath) {
+      alert("File haipatikani");
+      return;
+    }
+    
+    const fullUrl = getFileUrl(filePath);
+    console.log("Opening file:", fullUrl); // For debugging
+    
+    // Direct file access - browser will handle PDF/Images automatically
+    window.open(fullUrl, '_blank');
   };
 
   const openModal = (slip) => {
@@ -180,16 +193,17 @@ const AdminPaymentSlips = () => {
           <DataTable
             columns={["Hotel Name","Month","Amount","Status","File","Receipt","Details","Action"]}
             rows={slips.map((slip) => {
-              const slipFile = getFileUrl(slip, "file");
-              const receiptFileUrl = getFileUrl(slip, "receipt");
+              // 🔥 UPDATED: Use original file paths, not _url versions
+              const slipFile = slip.file;
+              const receiptFileUrl = slip.receipt;
 
               return {
                 "Hotel Name": getHotelName(slip.client),
-                Month: formatDate(slip.month_paid + 1),
+                Month: formatDate(slip.month_paid),
                 Amount: `Tsh ${Number(slip.amount ?? 0).toLocaleString()}`,
                 Status: <span className={`status-badge ${slip.status === "current" ? "current" : "past"}`}>{slip.status || "Unknown"}</span>,
-                File: slipFile ? <button className="btn  btn-outline" onClick={() => handleViewFile(slipFile)}> Slip</button> : <i style={{ color: "#999" }}>No file</i>,
-                Receipt: receiptFileUrl ? <button className="btn btn-outline" onClick={() => handleViewFile(receiptFileUrl)}> Receipt</button> : <i style={{ color: "#999" }}>No receipt</i>,
+                File: slipFile ? <button className="btn btn-outline" onClick={() => handleViewFile(slipFile)}>View Slip</button> : <i style={{ color: "#999" }}>No file</i>,
+                Receipt: receiptFileUrl ? <button className="btn btn-outline" onClick={() => handleViewFile(receiptFileUrl)}>View Receipt</button> : <i style={{ color: "#999" }}>No receipt</i>,
                 Details: (
                   <button className="btn btn-outline" onClick={() => openDetailsModal(slip)}>
                     Comments
@@ -228,6 +242,24 @@ const AdminPaymentSlips = () => {
                 <div className="form-control">
                   {activeSlip.admin_comment ? activeSlip.admin_comment : <i>No admin comment</i>}
                 </div>
+              </div>
+              {/* 🔥 ADDED: File viewing in details modal */}
+              <div className="file-links" style={{ marginTop: '15px' }}>
+                <button 
+                  className="btn btn-outline" 
+                  onClick={() => handleViewFile(activeSlip.file)}
+                  style={{ marginRight: '10px' }}
+                >
+                  View Payment Slip
+                </button>
+                {activeSlip.receipt && (
+                  <button 
+                    className="btn btn-outline" 
+                    onClick={() => handleViewFile(activeSlip.receipt)}
+                  >
+                    View Receipt
+                  </button>
+                )}
               </div>
             </div>
             <div className="modal-footer">
@@ -295,6 +327,7 @@ const AdminPaymentSlips = () => {
         .btn-secondary { background:#6c757d; color:white; border-color:#6c757d; }
         .status-badge.current { background:#e8f5e8; color:#2e7d32; }
         .status-badge.past { background:#fff3cd; color:#856404; }
+        .file-links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px; }
       `}</style>
     </div>
   );
