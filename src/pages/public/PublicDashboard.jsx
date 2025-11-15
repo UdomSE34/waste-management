@@ -45,47 +45,61 @@ const PublicDashboard = () => {
       .then((data) => setHotels(data))
       .catch((err) => console.error("Hotels fetch error:", err));
 
-    getMonthlySummary(selectedMonth)
-      .then((data) => {
-        const totalKg = data.reduce(
-          (sum, item) =>
-            sum +
-            (item.total_processed_waste || 0),
-          0
-        );
-        const totalPayments = data.reduce(
-          (sum, item) =>
-            sum +
-            (parseFloat(item.total_processed_payment) || 0),
-          0
-        );
-        setMonthlySummary({ totalKg, totalPayments });
-
-        const months = Array.from({ length: 12 }, (_, i) => {
-          const date = new Date(new Date().getFullYear(), i, 1);
-          const monthLabel = date.toLocaleString("default", { month: "short" });
-          const monthData = data.find(
-            (item) =>
-              new Date(item.month).getMonth() === date.getMonth() - 1 &&
-              new Date(item.month).getFullYear() === date.getFullYear()
-          );
-
-          return {
-            name: monthLabel,
-            waste:
-              (monthData?.total_processed_waste || 0),
-            payment:
-              (parseFloat(monthData?.total_processed_payment) || 0),
-          };
-        });
-        setChartData(months);
-      })
-      .catch((err) => console.error("Monthly summary fetch error:", err));
-
-    getDocuments()
-      .then((data) => setDocuments(data))
-      .catch((err) => console.error("Documents fetch error:", err));
+    loadMonthlySummary();
+    loadDocuments();
   }, [selectedMonth]);
+
+  // -----------------------------
+  // FIXED MONTHLY SUMMARY LOGIC
+  // -----------------------------
+  const loadMonthlySummary = async () => {
+    try {
+      const summary = await getMonthlySummary();
+
+      const totalKg = summary.reduce(
+        (sum, item) => sum + (item.total_processed_waste || 0),
+        0
+      );
+
+      const totalPayments = summary.reduce(
+        (sum, item) => sum + (parseFloat(item.total_processed_payment) || 0),
+        0
+      );
+
+      setMonthlySummary({ totalKg, totalPayments });
+
+      // FIXED CHART LOGIC
+      const months = Array.from({ length: 12 }, (_, i) => {
+        const year = new Date().getFullYear();
+        const monthData = summary.find((item) => {
+          const m = new Date(item.month);
+          return m.getMonth() === i && m.getFullYear() === year;
+        });
+
+        return {
+          name: new Date(year, i).toLocaleString("default", { month: "short" }),
+          waste: monthData?.total_processed_waste || 0,
+          payment: parseFloat(monthData?.total_processed_payment) || 0,
+        };
+      });
+
+      setChartData(months);
+    } catch (error) {
+      console.error("Error processing summary:", error);
+    }
+  };
+
+  // -----------------------------
+  // FIXED DOCUMENTS LOADING
+  // -----------------------------
+  const loadDocuments = async () => {
+    try {
+      const docs = await getDocuments();
+      setDocuments(docs);
+    } catch (error) {
+      console.error("Documents fetch error:", error);
+    }
+  };
 
   const filteredDocuments = documents.filter((doc) => {
     const matchesCategory =
@@ -112,13 +126,20 @@ const PublicDashboard = () => {
   };
 
   const formatDate = (dateString) => {
-    const options = { year: "numeric", month: "long", day: "numeric" };
-    return new Date(dateString).toLocaleDateString(undefined, options);
+    if (!dateString) return "Unknown date";
+    return new Date(dateString).toLocaleDateString(undefined, {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
   };
 
   const openDocument = (doc) => setSelectedDocument(doc);
   const closeDocument = () => setSelectedDocument(null);
 
+  // -----------------------------
+  // DASHBOARD VIEW
+  // -----------------------------
   const renderDashboard = () => (
     <>
       <div className="stats-cards">
@@ -163,9 +184,8 @@ const PublicDashboard = () => {
             >
               {Array.from({ length: 12 }, (_, i) => {
                 const date = new Date(new Date().getFullYear(), i, 1);
-                const monthValue = date.toISOString().slice(0, 7);
                 return (
-                  <option key={i} value={monthValue}>
+                  <option key={i} value={date.toISOString().slice(0, 7)}>
                     {date.toLocaleString("default", { month: "long" })}
                   </option>
                 );
@@ -189,11 +209,14 @@ const PublicDashboard = () => {
     </>
   );
 
+  // -----------------------------
+  // DOCUMENTS VIEW
+  // -----------------------------
   const renderDocuments = () => (
     <>
       <div className="card">
         <h3>ForsterInvestment Documents</h3>
-        <p>Access reports and payment summaries shared by ForsterInvestment.</p>
+        <p>Access official monthly reports & payment summaries.</p>
       </div>
 
       <div className="viewer-controls">
@@ -248,7 +271,7 @@ const PublicDashboard = () => {
         ) : (
           <div className="no-documents">
             <i className="bi bi-file-earmark"></i>
-            <p>No documents found matching your criteria.</p>
+            <p>No documents found</p>
           </div>
         )}
       </div>
@@ -262,13 +285,11 @@ const PublicDashboard = () => {
                 <i className="bi bi-x-circle"></i>
               </button>
             </div>
+
             <div className="modal-body">
               <div className="document-preview">
                 {getFileIcon(selectedDocument.type)}
-                <p>
-                  Preview not available. Click below to download and view this
-                  file.
-                </p>
+                <p>Preview not available — download to view.</p>
                 <button
                   className="btn-download-large"
                   onClick={() => downloadDocument(selectedDocument.url)}
@@ -276,6 +297,7 @@ const PublicDashboard = () => {
                   <i className="bi bi-download"></i> Download File
                 </button>
               </div>
+
               <div className="document-details">
                 <h4>Document Details</h4>
                 <p>
@@ -299,6 +321,9 @@ const PublicDashboard = () => {
     </>
   );
 
+  // -----------------------------
+  // CUSTOMERS VIEW
+  // -----------------------------
   const renderCustomers = () => (
     <div className="card">
       <h3>All Customers</h3>
@@ -309,7 +334,6 @@ const PublicDashboard = () => {
             <th>Address</th>
             <th>Contact</th>
             <th>Hadhi</th>
-            {/* <th>Status</th> */}
           </tr>
         </thead>
         <tbody>
@@ -319,14 +343,6 @@ const PublicDashboard = () => {
               <td>{hotel.address || "N/A"}</td>
               <td>{hotel.contact_phone || "N/A"}</td>
               <td>{hotel.hadhi || "N/A"}</td>
-              {/* <td>
-                <span className={`status ${hotel.status || ""}`}>
-                  {hotel.status
-                    ? hotel.status.charAt(0).toUpperCase() +
-                      hotel.status.slice(1)
-                    : "N/A"}
-                </span>
-              </td> */}
             </tr>
           ))}
         </tbody>
