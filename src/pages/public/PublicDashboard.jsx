@@ -33,6 +33,8 @@ const PublicDashboard = () => {
   });
   const [documents, setDocuments] = useState([]);
   const [chartData, setChartData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const categories = [
     { id: "all", name: "All Documents" },
@@ -41,61 +43,95 @@ const PublicDashboard = () => {
   ];
 
   useEffect(() => {
-    getHotels()
-      .then((data) => setHotels(data))
-      .catch((err) => console.error("Hotels fetch error:", err));
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch all data in parallel
+        const [hotelsData, summaryData, documentsData] = await Promise.all([
+          getHotels().catch(err => {
+            console.error("Hotels fetch error:", err);
+            return [];
+          }),
+          getMonthlySummary(selectedMonth).catch(err => {
+            console.error("Monthly summary fetch error:", err);
+            return [];
+          }),
+          getDocuments().catch(err => {
+            console.error("Documents fetch error:", err);
+            return [];
+          })
+        ]);
 
-    getMonthlySummary(selectedMonth)
-      .then((data) => {
-        const totalKg = data.reduce(
-          (sum, item) =>
-            sum +
-            (item.total_processed_waste || 0),
-          0
-        );
-        const totalPayments = data.reduce(
-          (sum, item) =>
-            sum +
-            (parseFloat(item.total_processed_payment) || 0),
-          0
-        );
-        setMonthlySummary({ totalKg, totalPayments });
+        // Set hotels
+        setHotels(Array.isArray(hotelsData) ? hotelsData : []);
 
-        const months = Array.from({ length: 12 }, (_, i) => {
-          const date = new Date(new Date().getFullYear(), i, 1);
-          const monthLabel = date.toLocaleString("default", { month: "short" });
-          const monthData = data.find(
-            (item) =>
-              new Date(item.month).getMonth() === date.getMonth() &&
-              new Date(item.month).getFullYear() === date.getFullYear()
+        // Process monthly summary
+        if (Array.isArray(summaryData)) {
+          const totalKg = summaryData.reduce(
+            (sum, item) => sum + (item.total_processed_waste || 0),
+            0
           );
+          const totalPayments = summaryData.reduce(
+            (sum, item) => sum + (parseFloat(item.total_processed_payment) || 0),
+            0
+          );
+          setMonthlySummary({ totalKg, totalPayments });
 
-          return {
-            name: monthLabel,
-            waste: (monthData?.total_processed_waste || 0),
-            payment: (parseFloat(monthData?.total_processed_payment) || 0),
-          };
-        });
-        setChartData(months);
-      })
-      .catch((err) => console.error("Monthly summary fetch error:", err));
+          // Generate chart data
+          const months = Array.from({ length: 12 }, (_, i) => {
+            const date = new Date(new Date().getFullYear(), i, 1);
+            const monthLabel = date.toLocaleString("default", { month: "short" });
+            const monthData = summaryData.find(
+              (item) =>
+                item.month &&
+                new Date(item.month).getMonth() === date.getMonth() &&
+                new Date(item.month).getFullYear() === date.getFullYear()
+            );
 
-    getDocuments()
-      .then((data) => setDocuments(data))
-      .catch((err) => console.error("Documents fetch error:", err));
+            return {
+              name: monthLabel,
+              waste: (monthData?.total_processed_waste || 0),
+              payment: (parseFloat(monthData?.total_processed_payment) || 0),
+            };
+          });
+          setChartData(months);
+        }
+
+        // Set documents
+        setDocuments(Array.isArray(documentsData) ? documentsData : []);
+
+      } catch (err) {
+        console.error("Overall fetch error:", err);
+        setError("Failed to load data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, [selectedMonth]);
 
+  // 🔥 FIXED: Safe document filtering
   const filteredDocuments = documents.filter((doc) => {
+    // Check if doc exists and has required properties
+    if (!doc || typeof doc !== 'object') return false;
+    
     const matchesCategory =
-      selectedCategory === "all" || doc.category === selectedCategory;
-    const matchesSearch = doc.name
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
+      selectedCategory === "all" || 
+      (doc.category && doc.category === selectedCategory);
+    
+    const matchesSearch = doc.name && 
+      typeof doc.name === 'string' && 
+      doc.name.toLowerCase().includes(searchTerm.toLowerCase());
+    
     return matchesCategory && matchesSearch;
   });
 
   const getFileIcon = (type) => {
-    switch (type) {
+    if (!type) return <i className="bi bi-file-earmark file-icon"></i>;
+    
+    switch (type.toLowerCase()) {
       case "pdf":
         return <i className="bi bi-file-earmark-pdf file-icon pdf"></i>;
       case "doc":
@@ -110,12 +146,54 @@ const PublicDashboard = () => {
   };
 
   const formatDate = (dateString) => {
-    const options = { year: "numeric", month: "long", day: "numeric" };
-    return new Date(dateString).toLocaleDateString(undefined, options);
+    if (!dateString) return "Date not available";
+    
+    try {
+      const options = { year: "numeric", month: "long", day: "numeric" };
+      return new Date(dateString).toLocaleDateString(undefined, options);
+    } catch {
+      return "Invalid date";
+    }
   };
 
-  const openDocument = (doc) => setSelectedDocument(doc);
+  const openDocument = (doc) => {
+    if (doc && typeof doc === 'object') {
+      setSelectedDocument(doc);
+    }
+  };
+
   const closeDocument = () => setSelectedDocument(null);
+
+  // Add loading state
+  if (loading) {
+    return (
+      <div className="dashboard">
+        <div className="main-content-public">
+          <div className="loading-container">
+            <div className="loading-spinner"></div>
+            <p>Loading data...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="dashboard">
+        <div className="main-content-public">
+          <div className="error-container">
+            <i className="bi bi-exclamation-triangle"></i>
+            <h3>Error Loading Data</h3>
+            <p>{error}</p>
+            <button onClick={() => window.location.reload()}>
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const renderDashboard = () => (
     <>
@@ -125,7 +203,7 @@ const PublicDashboard = () => {
             <i className="bi bi-trash3"></i>
           </div>
           <div className="stat-info">
-            <h3>{monthlySummary.totalKg.toLocaleString()} kg</h3>
+            <h3>{monthlySummary.totalKg.toLocaleString()} L</h3>
             <p>Total Waste Collected</p>
           </div>
         </div>
@@ -179,7 +257,7 @@ const PublicDashboard = () => {
             <YAxis />
             <Tooltip />
             <Legend />
-            <Bar dataKey="waste" fill="#1e3a5f" name="Waste (kg)" />
+            <Bar dataKey="waste" fill="#1e3a5f" name="Waste (L)" />
             <Bar dataKey="payment" fill="#28a745" name="Payments (TZS)" />
           </BarChart>
         </ResponsiveContainer>
@@ -310,14 +388,22 @@ const PublicDashboard = () => {
           </tr>
         </thead>
         <tbody>
-          {hotels.map((hotel) => (
-            <tr key={hotel.id}>
-              <td>{hotel.name}</td>
-              <td>{hotel.address || "N/A"}</td>
-              <td>{hotel.contact_phone || "N/A"}</td>
-              <td>{hotel.hadhi || "N/A"}</td>
+          {hotels.length > 0 ? (
+            hotels.map((hotel) => (
+              <tr key={hotel.id || hotel.hotel_id}>
+                <td>{hotel.name || "N/A"}</td>
+                <td>{hotel.address || "N/A"}</td>
+                <td>{hotel.contact_phone || "N/A"}</td>
+                <td>{hotel.hadhi || "N/A"}</td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td colSpan="4" className="no-data">
+                No customer data available
+              </td>
             </tr>
-          ))}
+          )}
         </tbody>
       </table>
     </div>
