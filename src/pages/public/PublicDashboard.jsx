@@ -19,9 +19,6 @@ import {
 
 const PublicDashboard = () => {
   const [activeMenu, setActiveMenu] = useState("dashboard");
-  const [selectedMonth, setSelectedMonth] = useState(
-    new Date().toISOString().slice(0, 7)
-  );
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedDocument, setSelectedDocument] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -43,7 +40,7 @@ const PublicDashboard = () => {
 
   useEffect(() => {
     loadData();
-  }, [selectedMonth]);
+  }, []);
 
   const loadData = async () => {
     setLoading(true);
@@ -68,7 +65,10 @@ const PublicDashboard = () => {
   };
 
   const processSummaryData = (data) => {
-    if (!data || data.length === 0) return;
+    if (!data || data.length === 0) {
+      setChartData([]);
+      return;
+    }
 
     // Calculate totals from ALL months
     const totalKg = data.reduce(
@@ -81,15 +81,15 @@ const PublicDashboard = () => {
     );
     setMonthlySummary({ totalKg, totalPayments });
 
-    // Prepare chart data (last 12 months or all available)
-    const chartData = data
-      .slice(0, 12) // Last 12 entries
-      .map(item => ({
-        name: new Date(item.month).toLocaleString("default", { month: "short", year: 'numeric' }),
-        waste: item.total_processed_waste || 0,
-        payment: parseFloat(item.total_processed_payment) || 0,
-      }))
-      .reverse(); // Show oldest to newest
+    // Prepare simple chart data - use ALL available months
+    const chartData = data.map(item => ({
+      name: new Date(item.month).toLocaleString("default", { 
+        month: "short", 
+        year: 'numeric' 
+      }),
+      waste: item.total_processed_waste || 0,
+      payment: parseFloat(item.total_processed_payment) || 0,
+    }));
 
     setChartData(chartData);
   };
@@ -107,12 +107,6 @@ const PublicDashboard = () => {
     switch (type) {
       case "pdf":
         return <i className="bi bi-file-earmark-pdf file-icon pdf"></i>;
-      case "doc":
-      case "docx":
-        return <i className="bi bi-file-earmark-word file-icon doc"></i>;
-      case "xlsx":
-      case "xls":
-        return <i className="bi bi-file-earmark-excel file-icon xlsx"></i>;
       default:
         return <i className="bi bi-file-earmark file-icon"></i>;
     }
@@ -175,24 +169,6 @@ const PublicDashboard = () => {
       <div className="card">
         <div className="card-header">
           <h3>Waste & Payment Trends</h3>
-          <div className="chart-actions">
-            <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              disabled={loading}
-            >
-              <option value="">All Time</option>
-              {Array.from({ length: 12 }, (_, i) => {
-                const date = new Date(new Date().getFullYear(), i, 1);
-                const monthValue = date.toISOString().slice(0, 7);
-                return (
-                  <option key={i} value={monthValue}>
-                    {date.toLocaleString("default", { month: "long", year: 'numeric' })}
-                  </option>
-                );
-              })}
-            </select>
-          </div>
         </div>
 
         {chartData.length > 0 ? (
@@ -215,7 +191,7 @@ const PublicDashboard = () => {
           </ResponsiveContainer>
         ) : (
           <div className="no-data">
-            <p>No data available for the selected period</p>
+            <p>No data available yet</p>
           </div>
         )}
       </div>

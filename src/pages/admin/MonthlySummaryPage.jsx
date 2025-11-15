@@ -223,7 +223,7 @@ const MonthlySummaryDashboard = () => {
                       className="btn btn-outline"
                       onClick={() => handleViewFile(s.processed_waste_report)}
                     >
-                      Waste Report
+                      Waste 
                     </button>
                   )}
                   {s.processed_payment_report && (
@@ -231,7 +231,7 @@ const MonthlySummaryDashboard = () => {
                       className="btn btn-outline"
                       onClick={() => handleViewFile(s.processed_payment_report)}
                     >
-                      Payment Report
+                      Payment
                     </button>
                   )}
                 </div>
