@@ -19,6 +19,9 @@ import {
 
 const PublicDashboard = () => {
   const [activeMenu, setActiveMenu] = useState("dashboard");
+  const [selectedMonth, setSelectedMonth] = useState(
+    new Date().toISOString().slice(0, 7)
+  );
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedDocument, setSelectedDocument] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -30,7 +33,6 @@ const PublicDashboard = () => {
   });
   const [documents, setDocuments] = useState([]);
   const [chartData, setChartData] = useState([]);
-  const [loading, setLoading] = useState(false);
 
   const categories = [
     { id: "all", name: "All Documents" },
@@ -39,60 +41,51 @@ const PublicDashboard = () => {
   ];
 
   useEffect(() => {
-    loadData();
-  }, []);
+    getHotels()
+      .then((data) => setHotels(data))
+      .catch((err) => console.error("Hotels fetch error:", err));
 
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      // Load hotels
-      const hotelsData = await getHotels();
-      setHotels(hotelsData);
+    getMonthlySummary(selectedMonth)
+      .then((data) => {
+        const totalKg = data.reduce(
+          (sum, item) =>
+            sum +
+            (item.total_processed_waste || 0),
+          0
+        );
+        const totalPayments = data.reduce(
+          (sum, item) =>
+            sum +
+            (parseFloat(item.total_processed_payment) || 0),
+          0
+        );
+        setMonthlySummary({ totalKg, totalPayments });
 
-      // Load monthly summaries
-      const summaryData = await getMonthlySummary();
-      processSummaryData(summaryData);
+        const months = Array.from({ length: 12 }, (_, i) => {
+          const date = new Date(new Date().getFullYear(), i, 1);
+          const monthLabel = date.toLocaleString("default", { month: "short" });
+          const monthData = data.find(
+            (item) =>
+              new Date(item.month).getMonth() === date.getMonth() - 1 &&
+              new Date(item.month).getFullYear() === date.getFullYear()
+          );
 
-      // Load documents
-      const docsData = await getDocuments();
-      setDocuments(docsData);
+          return {
+            name: monthLabel,
+            waste:
+              (monthData?.total_processed_waste || 0),
+            payment:
+              (parseFloat(monthData?.total_processed_payment) || 0),
+          };
+        });
+        setChartData(months);
+      })
+      .catch((err) => console.error("Monthly summary fetch error:", err));
 
-    } catch (err) {
-      console.error("Data fetch error:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const processSummaryData = (data) => {
-    if (!data || data.length === 0) {
-      setChartData([]);
-      return;
-    }
-
-    // Calculate totals from ALL months
-    const totalKg = data.reduce(
-      (sum, item) => sum + (item.total_processed_waste || 0),
-      0
-    );
-    const totalPayments = data.reduce(
-      (sum, item) => sum + (parseFloat(item.total_processed_payment) || 0),
-      0
-    );
-    setMonthlySummary({ totalKg, totalPayments });
-
-    // Prepare simple chart data - use ALL available months
-    const chartData = data.map(item => ({
-      name: new Date(item.month).toLocaleString("default", { 
-        month: "short", 
-        year: 'numeric' 
-      }),
-      waste: item.total_processed_waste || 0,
-      payment: parseFloat(item.total_processed_payment) || 0,
-    }));
-
-    setChartData(chartData);
-  };
+    getDocuments()
+      .then((data) => setDocuments(data))
+      .catch((err) => console.error("Documents fetch error:", err));
+  }, [selectedMonth]);
 
   const filteredDocuments = documents.filter((doc) => {
     const matchesCategory =
@@ -107,30 +100,24 @@ const PublicDashboard = () => {
     switch (type) {
       case "pdf":
         return <i className="bi bi-file-earmark-pdf file-icon pdf"></i>;
+      case "doc":
+      case "docx":
+        return <i className="bi bi-file-earmark-word file-icon doc"></i>;
+      case "xlsx":
+      case "xls":
+        return <i className="bi bi-file-earmark-excel file-icon xlsx"></i>;
       default:
         return <i className="bi bi-file-earmark file-icon"></i>;
     }
   };
 
   const formatDate = (dateString) => {
-    try {
-      const options = { year: "numeric", month: "long", day: "numeric" };
-      return new Date(dateString).toLocaleDateString(undefined, options);
-    } catch {
-      return "Unknown date";
-    }
+    const options = { year: "numeric", month: "long", day: "numeric" };
+    return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
   const openDocument = (doc) => setSelectedDocument(doc);
   const closeDocument = () => setSelectedDocument(null);
-
-  const handleDownload = (doc) => {
-    if (doc.url) {
-      downloadDocument(doc.url);
-    } else {
-      alert("Document URL not available");
-    }
-  };
 
   const renderDashboard = () => (
     <>
@@ -141,7 +128,7 @@ const PublicDashboard = () => {
           </div>
           <div className="stat-info">
             <h3>{monthlySummary.totalKg.toLocaleString()} kg</h3>
-            <p>Total Waste Processed</p>
+            <p>Total Waste Collected</p>
           </div>
         </div>
 
@@ -151,7 +138,7 @@ const PublicDashboard = () => {
           </div>
           <div className="stat-info">
             <h3>TZS {monthlySummary.totalPayments.toLocaleString()}</h3>
-            <p>Total Payments Processed</p>
+            <p>Total Payments</p>
           </div>
         </div>
 
@@ -161,39 +148,43 @@ const PublicDashboard = () => {
           </div>
           <div className="stat-info">
             <h3>{hotels.length}</h3>
-            <p>Hotels Serviced</p>
+            <p>Customers Serviced</p>
           </div>
         </div>
       </div>
 
       <div className="card">
         <div className="card-header">
-          <h3>Waste & Payment Trends</h3>
+          <h3>Monthly Waste & Payment Trends</h3>
+          <div className="chart-actions">
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+            >
+              {Array.from({ length: 12 }, (_, i) => {
+                const date = new Date(new Date().getFullYear(), i, 1);
+                const monthValue = date.toISOString().slice(0, 7);
+                return (
+                  <option key={i} value={monthValue}>
+                    {date.toLocaleString("default", { month: "long" })}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
         </div>
 
-        {chartData.length > 0 ? (
-          <ResponsiveContainer width="100%" height={350}>
-            <BarChart data={chartData} barSize={30}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip 
-                formatter={(value, name) => {
-                  if (name === "waste") return [`${value.toLocaleString()} kg`, "Waste"];
-                  if (name === "payment") return [`TZS ${value.toLocaleString()}`, "Payments"];
-                  return [value, name];
-                }}
-              />
-              <Legend />
-              <Bar dataKey="waste" fill="#1e3a5f" name="Waste (kg)" />
-              <Bar dataKey="payment" fill="#28a745" name="Payments (TZS)" />
-            </BarChart>
-          </ResponsiveContainer>
-        ) : (
-          <div className="no-data">
-            <p>No data available yet</p>
-          </div>
-        )}
+        <ResponsiveContainer width="100%" height={350}>
+          <BarChart data={chartData} barSize={30}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="name" />
+            <YAxis />
+            <Tooltip />
+            <Legend />
+            <Bar dataKey="waste" fill="#1e3a5f" name="Waste (kg)" />
+            <Bar dataKey="payment" fill="#28a745" name="Payments (TZS)" />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
     </>
   );
@@ -228,9 +219,7 @@ const PublicDashboard = () => {
       </div>
 
       <div className="documents-grid">
-        {loading ? (
-          <div className="loading">Loading documents...</div>
-        ) : filteredDocuments.length > 0 ? (
+        {filteredDocuments.length > 0 ? (
           filteredDocuments.map((doc) => (
             <div key={doc.id} className="document-card">
               <div className="document-icon">{getFileIcon(doc.type)}</div>
@@ -249,7 +238,7 @@ const PublicDashboard = () => {
                 </button>
                 <button
                   className="btn-download"
-                  onClick={() => handleDownload(doc)}
+                  onClick={() => downloadDocument(doc.url)}
                 >
                   <i className="bi bi-download"></i> Download
                 </button>
@@ -277,11 +266,12 @@ const PublicDashboard = () => {
               <div className="document-preview">
                 {getFileIcon(selectedDocument.type)}
                 <p>
-                  Click below to download and view this file.
+                  Preview not available. Click below to download and view this
+                  file.
                 </p>
                 <button
                   className="btn-download-large"
-                  onClick={() => handleDownload(selectedDocument)}
+                  onClick={() => downloadDocument(selectedDocument.url)}
                 >
                   <i className="bi bi-download"></i> Download File
                 </button>
@@ -289,7 +279,7 @@ const PublicDashboard = () => {
               <div className="document-details">
                 <h4>Document Details</h4>
                 <p>
-                  <strong>Type:</strong> {selectedDocument.type.toUpperCase()}
+                  <strong>Type:</strong> {selectedDocument.type}
                 </p>
                 <p>
                   <strong>Category:</strong> {selectedDocument.category}
@@ -311,31 +301,36 @@ const PublicDashboard = () => {
 
   const renderCustomers = () => (
     <div className="card">
-      <h3>Our Hotel Partners</h3>
-      {loading ? (
-        <div className="loading">Loading hotels...</div>
-      ) : (
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Hotel Name</th>
-              <th>Address</th>
-              <th>Contact</th>
-              <th>Category</th>
+      <h3>All Customers</h3>
+      <table className="data-table">
+        <thead>
+          <tr>
+            <th>Customer Name</th>
+            <th>Address</th>
+            <th>Contact</th>
+            <th>Hadhi</th>
+            {/* <th>Status</th> */}
+          </tr>
+        </thead>
+        <tbody>
+          {hotels.map((hotel) => (
+            <tr key={hotel.id}>
+              <td>{hotel.name}</td>
+              <td>{hotel.address || "N/A"}</td>
+              <td>{hotel.contact_phone || "N/A"}</td>
+              <td>{hotel.hadhi || "N/A"}</td>
+              {/* <td>
+                <span className={`status ${hotel.status || ""}`}>
+                  {hotel.status
+                    ? hotel.status.charAt(0).toUpperCase() +
+                      hotel.status.slice(1)
+                    : "N/A"}
+                </span>
+              </td> */}
             </tr>
-          </thead>
-          <tbody>
-            {hotels.map((hotel) => (
-              <tr key={hotel.id || hotel.hotel_id}>
-                <td>{hotel.name || "N/A"}</td>
-                <td>{hotel.address || "N/A"}</td>
-                <td>{hotel.contact_phone || hotel.phone || "N/A"}</td>
-                <td>{hotel.hadhi || hotel.category || "N/A"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 
@@ -366,7 +361,6 @@ const PublicDashboard = () => {
       <div className="main-content-public">
         <div className="header-public">
           <h2>Baraza La Mji Mkoa wa Kusini</h2>
-          <p>Transparent Waste Management Reporting</p>
         </div>
 
         {activeMenu === "dashboard" && renderDashboard()}
