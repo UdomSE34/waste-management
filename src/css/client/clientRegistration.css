@@ -131,3 +131,20 @@
     height: 200px;
   }
 }
+
+
+.register-logo-wrapper {
+display: flex;
+justify-content: center;
+margin-bottom: 10px;
+}
+
+.register-logo {
+  width: 90px;
+  height: 90px;
+  object-fit: contain;
+  border-radius: 50%;
+  background: white;       /* Removes black background effect */
+  padding: 10px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}

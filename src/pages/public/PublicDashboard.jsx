@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   BarChart,
   Bar,
@@ -10,6 +11,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import "../../css/public/index.css";
+
 import {
   getHotels,
   getMonthlySummary,
@@ -18,21 +20,25 @@ import {
 } from "../../services/public/reportService";
 
 const PublicDashboard = () => {
+  const navigate = useNavigate();
+
   const [activeMenu, setActiveMenu] = useState("dashboard");
   const [selectedMonth, setSelectedMonth] = useState(
     new Date().toISOString().slice(0, 7)
   );
+
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedDocument, setSelectedDocument] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const [hotels, setHotels] = useState([]);
+  const [, setHotels] = useState([]);
   const [monthlySummary, setMonthlySummary] = useState({
     totalKg: 0,
     totalPayments: 0,
   });
   const [documents, setDocuments] = useState([]);
   const [chartData, setChartData] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -42,79 +48,63 @@ const PublicDashboard = () => {
     { id: "payments", name: "Payments" },
   ];
 
+  const handleLogout = () => {
+    localStorage.clear();
+    navigate("/login");
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        console.log("🚀 Starting data fetch...");
 
-        // Fetch all data in parallel
-        const [hotelsData, summaryData, documentsData] = await Promise.all([
-          getHotels().catch((err) => {
-            console.error("Hotels fetch error:", err);
-            return [];
-          }),
-          getMonthlySummary(selectedMonth).catch((err) => {
-            console.error("Monthly summary fetch error:", err);
-            return [];
-          }),
-          getDocuments().catch((err) => {
-            console.error("Documents fetch error:", err);
-            return [];
-          }),
+        const [hotelData, summaryData, docsData] = await Promise.all([
+          getHotels().catch(() => []),
+          getMonthlySummary(selectedMonth).catch(() => []),
+          getDocuments().catch(() => []),
         ]);
 
-        // 🔥 DEBUG: See what we're getting
-        console.log("🏨 Hotels data:", hotelsData);
-        console.log("📊 Summary data:", summaryData);
-        console.log("📄 Documents data:", documentsData);
-        console.log("📄 Documents data length:", documentsData.length);
-        console.log("📄 Documents data type:", typeof documentsData);
+        setHotels(hotelData || []);
 
-        // Set hotels
-        setHotels(Array.isArray(hotelsData) ? hotelsData : []);
-
-        // Process monthly summary
+        /** Monthly summary */
         if (Array.isArray(summaryData)) {
           const totalKg = summaryData.reduce(
             (sum, item) => sum + (item.total_processed_waste || 0),
             0
           );
           const totalPayments = summaryData.reduce(
-            (sum, item) =>
-              sum + (parseFloat(item.total_processed_payment) || 0),
+            (sum, item) => sum + (parseFloat(item.total_processed_payment) || 0),
             0
           );
+
           setMonthlySummary({ totalKg, totalPayments });
 
-          // Generate chart data
+          /** Generate chart for all months (Jan–Dec) */
           const months = Array.from({ length: 12 }, (_, i) => {
             const date = new Date(new Date().getFullYear(), i, 1);
-            const monthLabel = date.toLocaleString("default", {
-              month: "short",
+            const monthLabel = date.toLocaleString("default", { month: "short" });
+
+            const matchingMonth = summaryData.find((item) => {
+              if (!item.month) return false;
+              const d = new Date(item.month);
+              return (
+                d.getMonth() === date.getMonth() &&
+                d.getFullYear() === date.getFullYear()
+              );
             });
-            const monthData = summaryData.find(
-              (item) =>
-                item.month &&
-                new Date(item.month).getMonth() === date.getMonth() &&
-                new Date(item.month).getFullYear() === date.getFullYear()
-            );
 
             return {
               name: monthLabel,
-              waste: monthData?.total_processed_waste || 0,
-              payment: parseFloat(monthData?.total_processed_payment) || 0,
+              waste: matchingMonth?.total_processed_waste || 0,
+              payment: parseFloat(matchingMonth?.total_processed_payment) || 0,
             };
           });
+
           setChartData(months);
         }
 
-        // Set documents
-        setDocuments(Array.isArray(documentsData) ? documentsData : []);
-
-        console.log("✅ Data fetch completed");
+        setDocuments(docsData || []);
       } catch (err) {
-        console.error("❌ Overall fetch error:", err);
         setError("Failed to load data");
       } finally {
         setLoading(false);
@@ -124,27 +114,20 @@ const PublicDashboard = () => {
     fetchData();
   }, [selectedMonth]);
 
-  // 🔥 FIXED: Safe document filtering
+  /** Filter documents by category + search */
   const filteredDocuments = documents.filter((doc) => {
-    // Check if doc exists and has required properties
-    if (!doc || typeof doc !== "object") return false;
-
     const matchesCategory =
-      selectedCategory === "all" ||
-      (doc.category && doc.category === selectedCategory);
+      selectedCategory === "all" || doc?.category === selectedCategory;
 
     const matchesSearch =
-      doc.name &&
-      typeof doc.name === "string" &&
-      doc.name.toLowerCase().includes(searchTerm.toLowerCase());
+      doc?.name?.toLowerCase().includes(searchTerm.toLowerCase());
 
     return matchesCategory && matchesSearch;
   });
 
+  /** Icons for different file types */
   const getFileIcon = (type) => {
-    if (!type) return <i className="bi bi-file-earmark file-icon"></i>;
-
-    switch (type.toLowerCase()) {
+    switch (type?.toLowerCase()) {
       case "pdf":
         return <i className="bi bi-file-earmark-pdf file-icon pdf"></i>;
       case "doc":
@@ -158,26 +141,23 @@ const PublicDashboard = () => {
     }
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return "Date not available";
-
+  const formatDate = (date) => {
+    if (!date) return "Unknown date";
     try {
-      const options = { year: "numeric", month: "long", day: "numeric" };
-      return new Date(dateString).toLocaleDateString(undefined, options);
+      return new Date(date).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
     } catch {
       return "Invalid date";
     }
   };
 
-  const openDocument = (doc) => {
-    if (doc && typeof doc === "object") {
-      setSelectedDocument(doc);
-    }
-  };
-
+  const openDocument = (doc) => setSelectedDocument(doc);
   const closeDocument = () => setSelectedDocument(null);
 
-  // Add loading state
+  /** ============== LOADING SCREEN ============== */
   if (loading) {
     return (
       <div className="dashboard">
@@ -191,6 +171,7 @@ const PublicDashboard = () => {
     );
   }
 
+  /** ============== ERROR SCREEN ============== */
   if (error) {
     return (
       <div className="dashboard">
@@ -199,13 +180,14 @@ const PublicDashboard = () => {
             <i className="bi bi-exclamation-triangle"></i>
             <h3>Error Loading Data</h3>
             <p>{error}</p>
-            <button onClick={() => window.location.reload()}>Try Again</button>
+            <button onClick={() => window.location.reload()}>Retry</button>
           </div>
         </div>
       </div>
     );
   }
 
+  /** ============= DASHBOARD VIEW ============ */
   const renderDashboard = () => (
     <>
       <div className="stats-cards">
@@ -228,37 +210,24 @@ const PublicDashboard = () => {
             <p>Total Payments</p>
           </div>
         </div>
-
-        <div className="card stat-card">
-          <div className="stat-icon orange">
-            <i className="bi bi-building"></i>
-          </div>
-          <div className="stat-info">
-            <h3>{hotels.length}</h3>
-            <p>Customers Serviced</p>
-          </div>
-        </div>
       </div>
 
       <div className="card">
         <div className="card-header">
           <h3>Monthly Waste & Payment Trends</h3>
-          <div className="chart-actions">
-            <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-            >
-              {Array.from({ length: 12 }, (_, i) => {
-                const date = new Date(new Date().getFullYear(), i, 1);
-                const monthValue = date.toISOString().slice(0, 7);
-                return (
-                  <option key={i} value={monthValue}>
-                    {date.toLocaleString("default", { month: "long" })}
-                  </option>
-                );
-              })}
-            </select>
-          </div>
+          <select
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+          >
+            {Array.from({ length: 12 }, (_, i) => {
+              const date = new Date(new Date().getFullYear(), i, 1);
+              return (
+                <option key={i} value={date.toISOString().slice(0, 7)}>
+                  {date.toLocaleString("default", { month: "long" })}
+                </option>
+              );
+            })}
+          </select>
         </div>
 
         <ResponsiveContainer width="100%" height={350}>
@@ -276,30 +245,31 @@ const PublicDashboard = () => {
     </>
   );
 
+  /** ============= DOCUMENTS VIEW ============ */
   const renderDocuments = () => (
     <>
       <div className="card">
         <h3>ForsterInvestment Documents</h3>
-        <p>Access reports and payment summaries shared by ForsterInvestment.</p>
+        <p>Download shared reports and payment files.</p>
       </div>
 
       <div className="viewer-controls">
-        <div className="search-box">
-          <input
-            type="text"
-            placeholder="Search documents..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
+        <input
+          type="text"
+          placeholder="Search documents..."
+          className="filter-select"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+
         <div className="category-filter">
-          {categories.map((category) => (
+          {categories.map((cat) => (
             <button
-              key={category.id}
-              className={selectedCategory === category.id ? "active" : ""}
-              onClick={() => setSelectedCategory(category.id)}
+              key={cat.id}
+              className={selectedCategory === cat.id ? "active" : ""}
+              onClick={() => setSelectedCategory(cat.id)}
             >
-              {category.name}
+              {cat.name}
             </button>
           ))}
         </div>
@@ -310,23 +280,19 @@ const PublicDashboard = () => {
           filteredDocuments.map((doc) => (
             <div key={doc.id} className="document-card">
               <div className="document-icon">{getFileIcon(doc.type)}</div>
+
               <div className="document-info">
                 <h3>{doc.name}</h3>
-                <div className="document-meta">
-                  <span>{formatDate(doc.uploadDate)}</span>
-                  <span>•</span>
-                  <span>{doc.size}</span>
-                </div>
+                <small>{formatDate(doc.uploadDate)} • {doc.size}</small>
                 <span className="document-category">{doc.category}</span>
               </div>
+
               <div className="document-actions">
-                <button className="btn-view" onClick={() => openDocument(doc)}>
+                <button onClick={() => openDocument(doc)}>
                   <i className="bi bi-eye"></i> View
                 </button>
-                <button
-                  className="btn-download"
-                  onClick={() => downloadDocument(doc.url)}
-                >
+
+                <button onClick={() => downloadDocument(doc.url)}>
                   <i className="bi bi-download"></i> Download
                 </button>
               </div>
@@ -335,11 +301,12 @@ const PublicDashboard = () => {
         ) : (
           <div className="no-documents">
             <i className="bi bi-file-earmark"></i>
-            <p>No documents found matching your criteria.</p>
+            <p>No matching documents.</p>
           </div>
         )}
       </div>
 
+      {/* Modal */}
       {selectedDocument && (
         <div className="document-modal" onClick={closeDocument}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -349,13 +316,12 @@ const PublicDashboard = () => {
                 <i className="bi bi-x-circle"></i>
               </button>
             </div>
+
             <div className="modal-body">
               <div className="document-preview">
                 {getFileIcon(selectedDocument.type)}
-                <p>
-                  Preview not available. Click below to download and view this
-                  file.
-                </p>
+                <p>No preview available. Download to view file.</p>
+
                 <button
                   className="btn-download-large"
                   onClick={() => downloadDocument(selectedDocument.url)}
@@ -363,61 +329,19 @@ const PublicDashboard = () => {
                   <i className="bi bi-download"></i> Download File
                 </button>
               </div>
+
               <div className="document-details">
                 <h4>Document Details</h4>
-                <p>
-                  <strong>Type:</strong> {selectedDocument.type}
-                </p>
-                <p>
-                  <strong>Category:</strong> {selectedDocument.category}
-                </p>
-                <p>
-                  <strong>Uploaded:</strong>{" "}
-                  {formatDate(selectedDocument.uploadDate)}
-                </p>
-                <p>
-                  <strong>Size:</strong> {selectedDocument.size}
-                </p>
+                <p><strong>Type:</strong> {selectedDocument.type}</p>
+                <p><strong>Category:</strong> {selectedDocument.category}</p>
+                <p><strong>Uploaded:</strong> {formatDate(selectedDocument.uploadDate)}</p>
+                <p><strong>Size:</strong> {selectedDocument.size}</p>
               </div>
             </div>
           </div>
         </div>
       )}
     </>
-  );
-
-  const renderCustomers = () => (
-    <div className="card">
-      <h3>All Customers</h3>
-      <table className="data-table">
-        <thead>
-          <tr>
-            <th>Customer Name</th>
-            <th>Address</th>
-            <th>Contact</th>
-            <th>Hadhi</th>
-          </tr>
-        </thead>
-        <tbody>
-          {hotels.length > 0 ? (
-            hotels.map((hotel) => (
-              <tr key={hotel.id || hotel.hotel_id}>
-                <td>{hotel.name || "N/A"}</td>
-                <td>{hotel.address || "N/A"}</td>
-                <td>{hotel.contact_phone || "N/A"}</td>
-                <td>{hotel.hadhi || "N/A"}</td>
-              </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan="4" className="no-data">
-                No customer data available
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
   );
 
   return (
@@ -428,20 +352,22 @@ const PublicDashboard = () => {
           <h1>ForsterInvestment</h1>
         </div>
 
-        {["dashboard", "documents", "customers"].map((menu) => (
+        {["dashboard", "documents"].map((menu) => (
           <div
             key={menu}
-            className={`menu-item-public ${
-              activeMenu === menu ? "active" : ""
-            }`}
+            className={`menu-item-public ${activeMenu === menu ? "active" : ""}`}
             onClick={() => setActiveMenu(menu)}
           >
             {menu === "dashboard" && <i className="bi bi-house-door"></i>}
             {menu === "documents" && <i className="bi bi-file-earmark"></i>}
-            {menu === "customers" && <i className="bi bi-building"></i>}
             <span>{menu.charAt(0).toUpperCase() + menu.slice(1)}</span>
           </div>
         ))}
+
+        <div className="menu-item-public logout" onClick={handleLogout}>
+          <i className="bi bi-box-arrow-right"></i>
+          <span>Logout</span>
+        </div>
       </div>
 
       <div className="main-content-public">
@@ -451,7 +377,6 @@ const PublicDashboard = () => {
 
         {activeMenu === "dashboard" && renderDashboard()}
         {activeMenu === "documents" && renderDocuments()}
-        {activeMenu === "customers" && renderCustomers()}
       </div>
     </div>
   );

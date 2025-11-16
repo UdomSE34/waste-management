@@ -6,6 +6,7 @@ import { registerClient } from "../../services/client/clientService";
 import img6 from "../../image/6.jpg";
 import img7 from "../../image/7.jpg";
 import img8 from "../../image/8.jpg";
+import logo from "../../image/logo.jpg"; // 🔥 LOGO HERE
 
 const ClientRegistration = () => {
   const navigate = useNavigate();
@@ -17,33 +18,30 @@ const ClientRegistration = () => {
     password: "",
     confirmPassword: "",
   });
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [slideIndex, setSlideIndex] = useState(0);
 
+  const slides = [
+    {
+      image: img6,
+      title: "Welcome to Our Company",
+      desc: "We provide top-notch services for your business growth.",
+    },
+    {
+      image: img7,
+      title: "Reliable Support",
+      desc: "Our team is here to support you 24/7.",
+    },
+    {
+      image: img8,
+      title: "Innovative Solutions",
+      desc: "We offer innovative solutions tailored to your needs.",
+    },
+  ];
 
-
-const slides = [
-  {
-    image: img6,
-    title: "Welcome to Our Company",
-    desc: "We provide top-notch services for your business growth.",
-  },
-  {
-    image: img7,
-    title: "Reliable Support",
-    desc: "Our team is here to support you 24/7.",
-  },
-  {
-    image: img8,
-    title: "Innovative Solutions",
-    desc: "We offer innovative solutions tailored to your needs.",
-  },
-];
-
-
-  // Auto-slide every 5 seconds
   useEffect(() => {
     const timer = setInterval(() => {
       setSlideIndex((prev) => (prev + 1) % slides.length);
@@ -63,7 +61,7 @@ const slides = [
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
@@ -108,7 +106,14 @@ const slides = [
       const payload = { name, phone, email, address, password };
       await registerClient(payload);
       setSuccess("Client registered successfully!");
-      setFormData({ name: "", phone: "", email: "", address: "", password: "", confirmPassword: "" });
+      setFormData({
+        name: "",
+        phone: "",
+        email: "",
+        address: "",
+        password: "",
+        confirmPassword: "",
+      });
 
       setTimeout(() => navigate("/clients"), 2000);
     } catch (err) {
@@ -129,6 +134,12 @@ const slides = [
       </div>
 
       <div className="registration-card">
+
+        {/* 🔥 CLEAN LOGO (no border, no shadow, no round) */}
+        <div className="register-logo-wrapper">
+          <img src={logo} alt="Company Logo" className="register-logo" />
+        </div>
+
         <div className="card-header-client">
           <h2>Customer Registration</h2>
         </div>
@@ -137,7 +148,6 @@ const slides = [
           {error && <div className="error-message">{error}</div>}
           {success && <div className="success-message">{success}</div>}
 
-          {/* Row 1: Name & Phone */}
           <div className="form-row">
             <div className="form-group">
               <label htmlFor="name">Full Name *</label>
@@ -149,7 +159,6 @@ const slides = [
             </div>
           </div>
 
-          {/* Row 2: Email & Address */}
           <div className="form-row">
             <div className="form-group">
               <label htmlFor="email">Email Address *</label>
@@ -161,7 +170,6 @@ const slides = [
             </div>
           </div>
 
-          {/* Row 3: Password & Confirm Password */}
           <div className="form-row">
             <div className="form-group">
               <label htmlFor="password">Password *</label>

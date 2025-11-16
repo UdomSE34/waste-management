@@ -4,6 +4,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import StaffLayout from "./layouts/StaffLayout";
 import ClientLayout from "./layouts/ClientLayout";
 import AdminLayout from "./layouts/AdminLayouts";
+import PublicLayot from "./layouts/PublicLayouts";
 
 // Admin Pages
 import AdminWorkers from "./pages/admin/AdminWorkers";
@@ -116,9 +117,19 @@ export default function App() {
         </Route>
       </Route>
 
+      {/* Staff Protected Routes */}
+      <Route element={<PrivateRoute allowedRoles={["Council"]} />}>
+        <Route path="/public/*" element={<PublicLayot />}>
+          <Route index element={<PublicDashboard />} />
+          
+          <Route path="*" element={<Navigate to="/public" />} />
+        </Route>
+      </Route>
+
+
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/login" />} />
-      <Route path="/public" element={<PublicDashboard />} />
+      
     </Routes>
   );
 }
