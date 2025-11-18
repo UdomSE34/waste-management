@@ -31,6 +31,7 @@ import PendingHotels from "./pages/PendingPage";
 import IncompleteSchedule from "./pages/IncompleteSchedule";
 import UserNotifications from "./pages/UserNotifications";
 import StaffMessaging from "./pages/StaffMessaging";
+import Invoices from "./pages/Invoices";
 
 
 
@@ -90,7 +91,7 @@ export default function App() {
           <Route path="incomplete-schedules" element={<IncompleteSchedule />} />
           <Route path="user-notifications" element={<UserNotifications />} />
           <Route path="staff-messaging" element={<StaffMessaging />} />
-          
+          <Route path="invoices" element={<Invoices />} />
           <Route path="*" element={<Navigate to="/staff" />} />
         </Route>
       </Route>

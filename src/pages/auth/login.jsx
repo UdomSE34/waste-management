@@ -3,9 +3,9 @@ import { useNavigate } from "react-router-dom";
 import "../../css/auth/login.css";
 import { loginUser } from "../../api/api";
 
-import img1 from "../../image/1.jpg";
-import img2 from "../../image/2.jpg";
-import img3 from "../../image/3.jpg";
+import img1 from "../../image/f1.jpg";
+import img2 from "../../image/f2.jpg";
+import img3 from "../../image/f3.jpg";
 import logo from "../../image/logo.jpg"; // LOGO IMPORT
 
 const slides = [

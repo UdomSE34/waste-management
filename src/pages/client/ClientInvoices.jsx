@@ -192,7 +192,7 @@ const ClientInvoices = () => {
               >
                 {submitting
                   ? "Submitting..."
-                  : "Mark as Received & Download PDF"}
+                  : "Download PDF"}
               </button>
               <button className="btn btn-secondary" onClick={closeModal}>
                 Cancel

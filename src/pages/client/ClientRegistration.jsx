@@ -3,9 +3,9 @@ import { useNavigate } from "react-router-dom";
 import "../../css/client/clientRegistration.css";
 import { registerClient } from "../../services/client/clientService";
 
-import img6 from "../../image/6.jpg";
-import img7 from "../../image/7.jpg";
-import img8 from "../../image/8.jpg";
+import img6 from "../../image/f1.jpg";
+import img7 from "../../image/f2.jpg";
+import img8 from "../../image/f3.jpg";
 import logo from "../../image/logo.jpg"; // 🔥 LOGO HERE
 
 const ClientRegistration = () => {
@@ -72,7 +72,14 @@ const ClientRegistration = () => {
 
     const { name, phone, email, address, password, confirmPassword } = formData;
 
-    if (!name || !phone || !email || !address || !password || !confirmPassword) {
+    if (
+      !name ||
+      !phone ||
+      !email ||
+      !address ||
+      !password ||
+      !confirmPassword
+    ) {
       setError("All fields are required");
       setLoading(false);
       return;
@@ -126,7 +133,14 @@ const ClientRegistration = () => {
   return (
     <div className="client-registration-page">
       <div className="slideshow">
-        <img src={slides[slideIndex].image} alt={slides[slideIndex].title} />
+        {slides.map((slide, idx) => (
+          <img
+            key={idx}
+            src={slide.image}
+            alt={slide.title}
+            className={idx === slideIndex ? "active" : ""}
+          />
+        ))}
         <div className="slide-text">
           <h3>{slides[slideIndex].title}</h3>
           <p>{slides[slideIndex].desc}</p>
@@ -134,7 +148,6 @@ const ClientRegistration = () => {
       </div>
 
       <div className="registration-card">
-
         {/* 🔥 CLEAN LOGO (no border, no shadow, no round) */}
         <div className="register-logo-wrapper">
           <img src={logo} alt="Company Logo" className="register-logo" />
@@ -151,38 +164,90 @@ const ClientRegistration = () => {
           <div className="form-row">
             <div className="form-group">
               <label htmlFor="name">Full Name *</label>
-              <input type="text" id="name" name="name" value={formData.name} onChange={handleInputChange} placeholder="Enter full name" required />
+              <input
+                type="text"
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleInputChange}
+                placeholder="Enter full name"
+                required
+              />
             </div>
             <div className="form-group">
               <label htmlFor="phone">Phone Number *</label>
-              <input type="tel" id="phone" name="phone" value={formData.phone} onChange={handleInputChange} placeholder="Enter phone number" required />
+              <input
+                type="tel"
+                id="phone"
+                name="phone"
+                value={formData.phone}
+                onChange={handleInputChange}
+                placeholder="Enter phone number"
+                required
+              />
             </div>
           </div>
 
           <div className="form-row">
             <div className="form-group">
               <label htmlFor="email">Email Address *</label>
-              <input type="email" id="email" name="email" value={formData.email} onChange={handleInputChange} placeholder="Enter email" required />
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                placeholder="Enter email"
+                required
+              />
             </div>
             <div className="form-group">
               <label htmlFor="address">Address *</label>
-              <input type="text" id="address" name="address" value={formData.address} onChange={handleInputChange} placeholder="Enter address" required />
+              <input
+                type="text"
+                id="address"
+                name="address"
+                value={formData.address}
+                onChange={handleInputChange}
+                placeholder="Enter address"
+                required
+              />
             </div>
           </div>
 
           <div className="form-row">
             <div className="form-group">
               <label htmlFor="password">Password *</label>
-              <input type="password" id="password" name="password" value={formData.password} onChange={handleInputChange} placeholder="Enter password" required />
+              <input
+                type="password"
+                id="password"
+                name="password"
+                value={formData.password}
+                onChange={handleInputChange}
+                placeholder="Enter password"
+                required
+              />
             </div>
             <div className="form-group">
               <label htmlFor="confirmPassword">Confirm Password *</label>
-              <input type="password" id="confirmPassword" name="confirmPassword" value={formData.confirmPassword} onChange={handleInputChange} placeholder="Confirm password" required />
+              <input
+                type="password"
+                id="confirmPassword"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleInputChange}
+                placeholder="Confirm password"
+                required
+              />
             </div>
           </div>
 
           <div className="form-actions">
-            <button type="submit" className="btn btn-primary" disabled={loading}>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={loading}
+            >
               {loading ? "Registering..." : "Register"}
             </button>
           </div>

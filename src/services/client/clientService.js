@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // Base API URL
-//  const API_URL = "http://127.0.0.1:8000/api/clients/";
+// const API_URL = "http://127.0.0.1:8000/api/clients/";
 const API_URL = "https://back.deploy.tz/api/clients/";
 
 // Create Axios instance
@@ -13,9 +13,12 @@ const api = axios.create({
 // Attach token from localStorage to every request automatically
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("authToken");
-    if (token) {
-      config.headers["Authorization"] = `Token ${token}`;
+    // Do not attach token for registration endpoint
+    if (!config.url.includes("register/")) {
+      const token = localStorage.getItem("authToken");
+      if (token) {
+        config.headers["Authorization"] = `Token ${token}`;
+      }
     }
     return config;
   },
@@ -32,14 +35,16 @@ export const fetchClients = async () => {
   }
 };
 
-// Register client (no token required, uses /register/ endpoint)
+// Register client (no token required)
 export const registerClient = async (clientData) => {
   try {
-    const response = await api.post("register/", clientData); // <-- Use 'register/' endpoint
-    // Save token in localStorage for future requests
+    const response = await api.post("register/", clientData);
+
+    // Save token in localStorage for future authenticated requests
     if (response.data.token) {
       localStorage.setItem("authToken", response.data.token);
     }
+
     return response.data;
   } catch (error) {
     handleError(error);
@@ -79,7 +84,9 @@ export const toggleActive = async (id, isActive) => {
 const handleError = (error) => {
   if (error.response) {
     // DRF usually returns { detail: "..." }
-    throw new Error(error.response.data?.detail || JSON.stringify(error.response.data));
+    throw new Error(
+      error.response.data?.detail || JSON.stringify(error.response.data)
+    );
   } else if (error.request) {
     throw new Error("Network error. Please check your connection.");
   } else {
