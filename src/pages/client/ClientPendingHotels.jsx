@@ -143,9 +143,9 @@ const ClientPendingHotels = () => {
     <div className="content">
       <div className="page-header d-flex justify-content-between align-items-center">
         <h2>Registration Information</h2>
-        <button className="btn btn-primary" onClick={() => setShowChat(!showChat)}>
+        {/* <button className="btn btn-primary" onClick={() => setShowChat(!showChat)}>
           💬 Messages
-        </button>
+        </button> */}
       </div>
       <br />
 

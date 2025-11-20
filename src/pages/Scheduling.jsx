@@ -26,6 +26,9 @@ const Scheduling = () => {
   const [sendTomorrow, setSendTomorrow] = useState(false);
   const alertRef = useRef(null);
 
+  // 🔥 New filter state
+  const [hotelFilter, setHotelFilter] = useState("All");
+
   const isWithinTimeWindow = () => {
     const now = new Date();
     const hour = now.getHours();
@@ -56,13 +59,10 @@ const Scheduling = () => {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-    } catch (err) {
-      // console.error("Error downloading PDF:", err);
-      // alert("Failed to download PDF.");
-    }
+    } catch (err) {}
   };
 
-  // Fetch collections and hotels
+  // Fetch data
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -74,6 +74,7 @@ const Scheduling = () => {
         const today = new Date().toLocaleDateString("en-US", {
           weekday: "long",
         });
+
         const yesterdayDate = new Date();
         yesterdayDate.setDate(yesterdayDate.getDate() - 1);
         const yesterday = yesterdayDate.toLocaleDateString("en-US", {
@@ -83,6 +84,7 @@ const Scheduling = () => {
         const todaySchedules = collectionsRes.filter(
           (item) => item.status === "Pending" && item.day === today
         );
+
         const yesterdaySchedules = collectionsRes.filter(
           (item) => item.status === "Pending" && item.day === yesterday
         );
@@ -99,6 +101,7 @@ const Scheduling = () => {
         ]);
 
         setHotels(hotelsRes);
+
         const initSelected = {};
         hotelsRes.forEach((h) => (initSelected[h.id] = false));
         setSelectedHotels(initSelected);
@@ -154,18 +157,25 @@ const Scheduling = () => {
     }
   };
 
-  // Table helpers
+  // Helpers
   const toMinutes = (timeStr) => {
     const [hours, minutes] = timeStr.split(":").map(Number);
     return hours * 60 + minutes;
   };
+
   const getEndMinutesFromSlot = (slotRange) => {
     if (!slotRange || !slotRange.includes("–")) return null;
     return toMinutes(slotRange.split("–")[1].trim());
   };
 
-  // Table rows
-  const rows = collections.map((item) => {
+  // 🔥 FILTER COLLECTIONS BEFORE TABLE
+  const filteredCollections =
+    hotelFilter === "All"
+      ? collections
+      : collections.filter((c) => c.hotel_name === hotelFilter);
+
+  // TABLE ROWS
+  const rows = filteredCollections.map((item) => {
     const endMinutes = getEndMinutesFromSlot(item.slot);
     const now = new Date();
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
@@ -175,6 +185,7 @@ const Scheduling = () => {
       Day: item.day + (item.isYesterday ? " (Yesterday)" : ""),
       "Time Range": item.slot,
       Hotel: item.hotel_name,
+      Address: item.address,
       Status: item.status,
       Action: (
         <div style={{ display: "flex", gap: "5px" }}>
@@ -215,16 +226,13 @@ const Scheduling = () => {
     <div className="content">
       <div className="page-header">
         <h2>Daily Collections</h2>
-        <button
-          className="btn btn-secondary"
-          onClick={() => setShowModal(true)}
-        >
+        <button className="btn btn-secondary" onClick={() => setShowModal(true)}>
           Filter Hotels
         </button>
       </div>
       <br />
 
-      {/* Alert */}
+      {/* YESTERDAY ALERT */}
       {showAlert && (
         <div className="popup-overlay">
           <div ref={alertRef} className="popup-alert">
@@ -267,23 +275,41 @@ const Scheduling = () => {
         </div>
       )}
 
-      {/* Collections Table */}
+      {/* TABLE */}
       <div className="card">
         <div className="card-header">
           <h3>Collections</h3>
+
           {(collections.length > 0 || yesterdayCount > 0) && (
             <button className="btn btn-primary" onClick={handleDownloadPDF}>
               📄 Download PDF
             </button>
           )}
+
+          {/* HOTEL FILTER UI */}
+          <div className="filter-box">
+            <label style={{ marginRight: "10px" }}>Filter Hotel:</label>
+            <select
+              value={hotelFilter}
+              onChange={(e) => setHotelFilter(e.target.value)}
+              className="form-control"
+              style={{ width: "200px", display: "inline-block" }}
+            >
+              <option value="All">All</option>
+              <option value="Michanvi">Michanvi</option>
+              <option value="Page">Page</option>
+              <option value="Bwejuu">Bwejuu</option>
+            </select>
+          </div>
         </div>
+
         <DataTable
-          columns={["Day", "Time Range", "Hotel", "Status", "Action"]}
+          columns={["Day", "Time Range", "Hotel", "Address", "Status", "Action"]}
           rows={rows}
         />
       </div>
 
-      {/* Hotel Filter Modal */}
+      {/* HOTEL FILTER MODAL */}
       {showModal && (
         <div className="modal">
           <div className="modal-content">
@@ -317,7 +343,7 @@ const Scheduling = () => {
         </div>
       )}
 
-      {/* Apology Modal */}
+      {/* APOLOGY MODAL */}
       {apologyModalVisible && (
         <div className="modal">
           <div className="modal-content">

@@ -217,10 +217,11 @@ const PublicDashboard = () => {
           <h3>Monthly Waste & Payment Trends</h3>
           <select
             value={selectedMonth}
+            className="filter-select"
             onChange={(e) => setSelectedMonth(e.target.value)}
           >
             {Array.from({ length: 12 }, (_, i) => {
-              const date = new Date(new Date().getFullYear(), i, 1);
+              const date = new Date(new Date().getFullYear(), i, 2);
               return (
                 <option key={i} value={date.toISOString().slice(0, 7)}>
                   {date.toLocaleString("default", { month: "long" })}
