@@ -172,7 +172,7 @@ const Scheduling = () => {
   const filteredCollections =
     hotelFilter === "All"
       ? collections
-      : collections.filter((c) => c.hotel_name === hotelFilter);
+      : collections.filter((c) => c.address === hotelFilter);
 
   // TABLE ROWS
   const rows = filteredCollections.map((item) => {
