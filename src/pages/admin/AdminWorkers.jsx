@@ -15,22 +15,20 @@ const WorkersDashboard = () => {
   const [showAddUser, setShowAddUser] = useState(false);
   // eslint-disable-next-line no-empty-pattern
   const [] = useState(null);
-  
-  
 
   // Unified modal state
   const [modal, setModal] = useState({ user: null, type: null });
   const [comment, setComment] = useState("");
   const [btnLoading, setBtnLoading] = useState(false);
 
-    // Dismiss messages
+  // Dismiss messages
   const clearMessages = () => {
     setError("");
     setSuccess("");
   };
 
   // Match backend role values exactly
-const roles = [ "Staff", "Workers", "HR", "Supervisors", "Drivers", "Council"];
+  const roles = ["Staff", "Workers", "HR", "Supervisors", "Drivers", "Council"];
 
   // New user form
   const [newUser, setNewUser] = useState({
@@ -45,21 +43,20 @@ const roles = [ "Staff", "Workers", "HR", "Supervisors", "Drivers", "Council"];
     emergency_contact_phone: "",
   });
 
-
   const loadUsers = async () => {
-      clearMessages();
-      setLoading(true);
-      try {
-        const data = await fetchWorkers();
-        setUsers(Array.isArray(data) ? data : []);
-      } catch (err) {
-        console.error("Error fetching users:", err);
-        setError("Failed to load users. Please try again later.");
-        setUsers([]);
-      } finally {
-        setLoading(false);
-      }
-    };
+    clearMessages();
+    setLoading(true);
+    try {
+      const data = await fetchWorkers();
+      setUsers(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Error fetching users:", err);
+      setError("Failed to load users. Please try again later.");
+      setUsers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Add new user
   const handleAddUser = async (e) => {
@@ -96,7 +93,7 @@ const roles = [ "Staff", "Workers", "HR", "Supervisors", "Drivers", "Council"];
     }
   };
 
-    // Input handler
+  // Input handler
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setNewUser((prev) => ({ ...prev, [name]: value }));
@@ -521,7 +518,6 @@ const roles = [ "Staff", "Workers", "HR", "Supervisors", "Drivers", "Council"];
         </div>
       )}
 
-
       {/* Unified Modal */}
       {modal.user && (
         <div className="modal">
@@ -539,13 +535,17 @@ const roles = [ "Staff", "Workers", "HR", "Supervisors", "Drivers", "Council"];
               {modal.type === "reject_suspend" &&
                 `Reject suspend request for ${modal.user.name}?`}
             </h3>
-            <textarea
-              placeholder="Enter reason/comment (required)"
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              rows={4}
-              autoFocus
-            />
+            <div className="form-group">
+              <textarea
+                placeholder="Enter reason/comment (required)"
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                rows={2}
+                autoFocus
+                className="form-group"
+              />
+            </div>
+
             <div className="form-actions mt-3 flex gap-2">
               <button
                 className="btn btn-outline"

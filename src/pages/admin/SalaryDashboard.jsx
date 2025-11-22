@@ -20,11 +20,24 @@ const SalaryDashboard = () => {
   const [error, setError] = useState(null);
 
   const months = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
   ];
 
-  const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i);
+  const years = Array.from(
+    { length: 5 },
+    (_, i) => new Date().getFullYear() - 2 + i
+  );
 
   useEffect(() => {
     loadData();
@@ -40,10 +53,24 @@ const SalaryDashboard = () => {
         fetchRolePolicies(),
       ]);
 
+      console.log("=== DEBUG: Raw users data ===");
+      console.log(usersData);
+
       // ✅ Filter active users and exclude Council role
       const activeUsers = (usersData || [])
-        .filter(u => u.status === "Active" || u.is_active)
-        .filter(u => u.role !== "Council"); // 👈 Exclude council users
+        .filter((u) => u.status === "Active" || u.is_active)
+        .filter((u) => u.role !== "Council");
+
+      // Debug salary data
+      console.log("=== DEBUG: Salary data for each user ===");
+      activeUsers.forEach((user) => {
+        console.log(
+          `User: ${user.name}, Has Salary: ${!!user.salary}, Salary ID: ${
+            user.salary?.salary_id
+          }`
+        );
+        console.log("Full salary object:", user.salary);
+      });
 
       setUsers(activeUsers);
       setRolePolicies(policiesData || []);
@@ -63,23 +90,44 @@ const SalaryDashboard = () => {
       setShowCalculateModal(false);
     } catch (err) {
       console.error("Error calculating salaries:", err);
-      setError("Failed to calculate salaries. Please check attendance and policies.");
+      setError(
+        "Failed to calculate salaries. Please check attendance and policies."
+      );
     }
   };
 
   const toggleSalaryStatus = async (salary) => {
-    if (!salary) return;
+    console.log("=== DEBUG: Toggle salary called ===");
+    console.log("Salary object:", salary);
+    console.log("Salary ID:", salary?.salary_id);
+
+    if (!salary || !salary.salary_id) {
+      console.error("Invalid salary data - no salary_id found");
+      setError(
+        "Cannot update salary: Salary data is incomplete. Please recalculate salaries first."
+      );
+      return;
+    }
+
     try {
       const newStatus = salary.status === "Paid" ? "Unpaid" : "Paid";
-      const updatedSalary = await updateSalaryStatus(salary.salary_id, newStatus);
+      console.log(`Updating salary ${salary.salary_id} to ${newStatus}`);
+
+      const updatedSalary = await updateSalaryStatus(
+        salary.salary_id,
+        newStatus
+      );
+
       setUsers((prev) =>
         prev.map((u) =>
-          u.salary?.salary_id === updatedSalary.salary_id ? { ...u, salary: updatedSalary } : u
+          u.salary?.salary_id === updatedSalary.salary_id
+            ? { ...u, salary: updatedSalary }
+            : u
         )
       );
     } catch (err) {
       console.error("Error updating salary status:", err);
-      setError("Failed to update salary status.");
+      setError("Failed to update salary status. Please try again.");
     }
   };
 
@@ -132,7 +180,9 @@ const SalaryDashboard = () => {
             className="filter-select"
           >
             {months.map((month, index) => (
-              <option key={index} value={index + 1}>{month}</option>
+              <option key={index} value={index + 1}>
+                {month}
+              </option>
             ))}
           </select>
           <select
@@ -141,7 +191,9 @@ const SalaryDashboard = () => {
             className="filter-select"
           >
             {years.map((year) => (
-              <option key={year} value={year}>{year}</option>
+              <option key={year} value={year}>
+                {year}
+              </option>
             ))}
           </select>
           <button className="btn btn-primary" onClick={handleExportPDF}>
@@ -154,23 +206,36 @@ const SalaryDashboard = () => {
 
       <div className="dashboard-cards">
         <div className="card">
-          <div className="card-header"><h3>Total Payroll</h3></div>
+          <div className="card-header">
+            <h3>Total Payroll</h3>
+          </div>
           <h4>
             {users
-              .reduce((total, user) => total + parseFloat(user.salary?.total_salary || 0), 0)
+              .reduce(
+                (total, user) =>
+                  total + parseFloat(user.salary?.total_salary || 0),
+                0
+              )
               .toLocaleString("en-US", { style: "currency", currency: "Tsh" })}
           </h4>
         </div>
         <div className="card">
-          <div className="card-header"><h3>Employees</h3></div>
+          <div className="card-header">
+            <h3>Employees</h3>
+          </div>
           <h4 className="count">{users.length}</h4>
         </div>
         <div className="card">
-          <div className="card-header"><h3>Average Salary</h3></div>
+          <div className="card-header">
+            <h3>Average Salary</h3>
+          </div>
           <h4 className="amount">
             {(
-              users.reduce((total, user) => total + parseFloat(user.salary?.total_salary || 0), 0) /
-              (users.length || 1)
+              users.reduce(
+                (total, user) =>
+                  total + parseFloat(user.salary?.total_salary || 0),
+                0
+              ) / (users.length || 1)
             ).toLocaleString("en-US", { style: "currency", currency: "Tsh" })}
           </h4>
         </div>
@@ -178,12 +243,21 @@ const SalaryDashboard = () => {
 
       <div className="card">
         <div className="card-header">
-          <h3>Employee Salaries - {months[selectedMonth - 1]} {selectedYear}</h3>
+          <h3>
+            Employee Salaries - {months[selectedMonth - 1]} {selectedYear}
+          </h3>
         </div>
         <DataTable
           columns={[
-            "Name", "Role", "Base Salary", "Bonuses", "Deductions",
-            "Total Salary", "Absences", "Status", "Actions"
+            "Name",
+            "Role",
+            "Base Salary",
+            "Bonuses",
+            "Deductions",
+            "Total Salary",
+            "Absences",
+            "Status",
+            "Actions",
           ]}
           rows={users.map((user) => ({
             Name: user.name,
@@ -202,16 +276,27 @@ const SalaryDashboard = () => {
               : "-",
             Absences: user.absences || 0,
             Status: user.salary?.status || "-",
-            Actions: user.salary ? (
-              <button
-                className="btn btn-outline"
-                onClick={() => toggleSalaryStatus(user.salary)}
-              >
-                {user.salary.status === "Paid" ? "Mark Unpaid" : "Mark Paid"}
-              </button>
-            ) : (
-              <button className="btn btn-outline" disabled>Pending</button>
-            ),
+            Actions:
+              user.salary && user.salary.salary_id ? (
+                <button
+                  className="btn btn-outline"
+                  onClick={() => toggleSalaryStatus(user.salary)}
+                >
+                  {user.salary.status === "Paid" ? "Mark Unpaid" : "Mark Paid"}
+                </button>
+              ) : (
+                <button
+                  className="btn btn-outline"
+                  disabled
+                  title={
+                    user.salary
+                      ? "Salary not calculated properly"
+                      : "No salary data"
+                  }
+                >
+                  {user.salary ? "Invalid Salary" : "No Salary"}
+                </button>
+              ),
           }))}
         />
       </div>
@@ -224,7 +309,8 @@ const SalaryDashboard = () => {
               Calculate salaries for {months[selectedMonth - 1]} {selectedYear}?
             </p>
             <p className="warning-text">
-              This will calculate salaries based on attendance records and role policies.
+              This will calculate salaries based on attendance records and role
+              policies.
             </p>
             <div className="modal-actions">
               <button
@@ -233,7 +319,10 @@ const SalaryDashboard = () => {
               >
                 Cancel
               </button>
-              <button className="btn btn-primary" onClick={handleCalculateSalaries}>
+              <button
+                className="btn btn-primary"
+                onClick={handleCalculateSalaries}
+              >
                 Calculate
               </button>
             </div>

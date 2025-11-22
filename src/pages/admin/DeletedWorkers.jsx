@@ -78,15 +78,21 @@ const DeletedWorkers = () => {
 
       <div className="card bg-white shadow rounded-lg border overflow-hidden">
         <div className="card-header p-4 border-b flex justify-between items-center">
-          <h3 className="text-xl font-semibold text-gray-800">Deleted Workers</h3>
+          <h3 className="text-xl font-semibold text-gray-800">
+            Deleted Workers
+          </h3>
         </div>
 
         {loading ? (
-          <p className="p-6 text-center text-gray-500">Loading deleted workers...</p>
+          <p className="p-6 text-center text-gray-500">
+            Loading deleted workers...
+          </p>
         ) : error ? (
           <p className="p-6 text-center text-red-500">{error}</p>
         ) : deletedWorkers.length === 0 ? (
-          <p className="p-6 text-center text-gray-500">No deleted workers found.</p>
+          <p className="p-6 text-center text-gray-500">
+            No deleted workers found.
+          </p>
         ) : (
           <DataTable
             columns={[
@@ -130,13 +136,16 @@ const DeletedWorkers = () => {
         <div className="modal">
           <div className="modal-content">
             <h3 className="mb-2">Restore {modal.user.name}?</h3>
-            <textarea
-              placeholder="Enter reason/comment for restore (required)"
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              rows={4}
-              autoFocus
-            />
+            <div className="form-group">
+              <textarea
+                placeholder="Enter reason/comment for restore (required)"
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                rows={2}
+                autoFocus
+              />
+            </div>
+
             <div className="form-actions mt-3 flex gap-2">
               <button
                 className="btn btn-outline"
