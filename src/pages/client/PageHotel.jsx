@@ -6,6 +6,13 @@ import hotelService from "../../services/client/hotelService";
 const PageHotel = () => {
   const navigate = useNavigate();
 
+  const [onboardingStep, setOnboardingStep] = useState(1);
+  const [isExistingClient, setIsExistingClient] = useState(null);
+  const [unclaimedHotels, setUnclaimedHotels] = useState([]);
+  const [selectedHotels, setSelectedHotels] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [showClaimModal, setShowClaimModal] = useState(false);
+
   const initialHotelState = {
     name: "",
     address: "",
@@ -18,14 +25,13 @@ const PageHotel = () => {
     collection_frequency: "",
     currency: "",
     payment_account: "",
-    client: "", // hidden field
+    client: "",
   };
 
   const [newHotel, setNewHotel] = useState(initialHotelState);
   const [submitted, setSubmitted] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
 
-  // Attach client_id from localStorage
   useEffect(() => {
     const clientId = localStorage.getItem("userId");
     if (!clientId) {
@@ -35,6 +41,77 @@ const PageHotel = () => {
     }
     setNewHotel((prev) => ({ ...prev, client: clientId }));
   }, [navigate]);
+
+  // 🔥 Load unclaimed hotels
+  const loadUnclaimedHotels = async () => {
+    setLoading(true);
+    try {
+      const hotels = await hotelService.getUnclaimedHotels();
+      console.log("✅ UNCLAIMED HOTELS:", hotels);
+      setUnclaimedHotels(hotels || []);
+    } catch (error) {
+      console.error("❌ Error fetching unclaimed hotels:", error);
+      alert("Hitilafu ya kupakua orodha ya hoteli.");
+      setUnclaimedHotels([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClientTypeSelect = async (isExisting) => {
+    setIsExistingClient(isExisting);
+    if (isExisting) {
+      await loadUnclaimedHotels();
+      setShowClaimModal(true);
+    } else {
+      setOnboardingStep(3);
+    }
+  };
+
+  const handleHotelSelect = (hotelId) => {
+    setSelectedHotels((prev) =>
+      prev.includes(hotelId)
+        ? prev.filter((id) => id !== hotelId)
+        : [...prev, hotelId]
+    );
+  };
+
+  const handleClaimHotels = async () => {
+    if (selectedHotels.length === 0) {
+      alert("Chagua angalau hoteli moja!");
+      return;
+    }
+    setLoading(true);
+    try {
+      const clientId = localStorage.getItem("userId");
+      const response = await hotelService.claimHotels(clientId, selectedHotels);
+      alert(`✅ ${response.message}`);
+      setShowClaimModal(false);
+      setSelectedHotels([]);
+      navigate("/client/hotels");
+    } catch (error) {
+      console.error("❌ Claiming error:", error);
+      alert(
+        error.response?.data?.detail ||
+          "Hitilafu imetokea. Tafadhali jaribu tena."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setShowClaimModal(false);
+    setSelectedHotels([]);
+    setOnboardingStep(3);
+  };
+
+  const handleBackToQuestion = () => {
+    setOnboardingStep(1);
+    setIsExistingClient(null);
+    setSelectedHotels([]);
+    setUnclaimedHotels([]);
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -46,30 +123,143 @@ const PageHotel = () => {
 
   const handleHotelSubmit = async (e) => {
     e.preventDefault();
-
     try {
-      await hotelService.createPendingHotel(newHotel); // POST data
+      await hotelService.createPendingHotel(newHotel);
       setSubmitted(true);
       setNewHotel(initialHotelState);
       setCurrentStep(1);
     } catch (error) {
-      console.error("Error submitting hotel info:", error.response || error);
+      console.error("❌ Error submitting hotel info:", error.response || error);
       alert(
-        error.response?.data?.detail ||
-          "Failed to submit hotel information. Please try again."
+        error.response?.data?.detail || "Failed to submit hotel information."
       );
     }
   };
+
   if (submitted) {
     return (
       <div className="success-message-client">
         <h2>Hotel Information Submitted Successfully!</h2>
-        <p>Your hotel details have been saved to our system.</p>
-        <button onClick={() => setSubmitted(false)}>Add Another Hotel</button>
+        <p>Your hotel details have been submitted for approval.</p>
+        <button
+          onClick={() => {
+            setSubmitted(false);
+            setOnboardingStep(1);
+          }}
+        >
+          Add Another Hotel
+        </button>
       </div>
     );
   }
 
+  // 🔥 Onboarding Step 1
+  if (onboardingStep === 1) {
+    return (
+      <div className="dashboard-hotel-form">
+        <div className="dashboard-header">
+          <br />
+          <h1>Karibu! Tupe Taarifa Kidogo</h1>
+          <p>Je, wewe ni nani kwenye mfumo wetu?</p>
+          <br />
+        </div>
+
+        <div
+          className="onboarding-questions"
+          style={{
+            display: "flex",
+            gap: "1rem",
+            justifyContent: "center",
+            flexWrap: "wrap",
+            maxWidth: "500px",
+            margin: "0 auto",
+          }}
+        >
+          <button
+            className="btn btn-primary"
+            onClick={() => handleClientTypeSelect(true)}
+          >
+            👍 Nipo tayari kwenye mfumo
+          </button>
+          <button
+            className="btn btn-secondary"
+            onClick={() => handleClientTypeSelect(false)}
+          >
+            🆕 Mimi ni mpya
+          </button>
+        </div>
+
+        {/* 🔥 Modal for claiming hotels */}
+        {showClaimModal && (
+          <div className="modal-overlay">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h2>Chagua Hoteli Zako</h2>
+                <button className="modal-close" onClick={handleCloseModal}>
+                  ×
+                </button>
+              </div>
+              <div className="modal-body">
+                {loading ? (
+                  <div className="loading-message">
+                    Inapakua orodha ya hoteli...
+                  </div>
+                ) : unclaimedHotels.length > 0 ? (
+                  <div className="hotels-selection">
+                    {unclaimedHotels.map((hotel) => (
+                      <div
+                        key={hotel.hotel_id}
+                        className="hotel-selection-item"
+                      >
+                        <label>
+                          <input
+                            type="checkbox"
+                            checked={selectedHotels.includes(hotel.hotel_id)}
+                            onChange={() => handleHotelSelect(hotel.hotel_id)}
+                          />
+                          <span>
+                            {hotel.name} ({hotel.address || "No address"})
+                          </span>
+                        </label>
+                      </div>
+                    ))}
+                    <div className="modal-actions">
+                      <button
+                        className="btn btn-success"
+                        onClick={handleClaimHotels}
+                        disabled={loading || selectedHotels.length === 0}
+                      >
+                        {loading
+                          ? "Inaendesha..."
+                          : `Thibitisha Kudai (${selectedHotels.length})`}
+                      </button>
+                      <button
+                        className="btn btn-outline-secondary"
+                        onClick={handleCloseModal}
+                      >
+                        Sajili Hotel Mpya
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="no-hotels-modal">
+                    <p style={{ textAlign: "center", color: "#666" }}>
+                      ❌ Hakuna hoteli zilizopatikana.
+                    </p>
+                    <button className="btn btn-outline" onClick={handleCloseModal}>
+                      Sajili Hotel Mpya
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // 🔥 Registration form for new hotel
   return (
     <div className="dashboard-hotel-form">
       <div className="dashboard-header">
@@ -79,7 +269,13 @@ const PageHotel = () => {
         <br />
       </div>
 
-      {/* Progress Steps */}
+      <button
+        className="btn btn-outline-secondary"
+        onClick={handleBackToQuestion}
+      >
+        ← Rudi kwenye Maswali
+      </button>
+
       <div className="form-progress dashboard-progress">
         <div className={`progress-step ${currentStep >= 1 ? "active" : ""}`}>
           <span>1</span>
@@ -99,107 +295,99 @@ const PageHotel = () => {
         onSubmit={handleHotelSubmit}
         className="dashboard-hotel-form-content"
       >
-        {/* Hidden client field */}
         <input type="hidden" name="client" value={newHotel.client} />
 
-        {/* Step 1: Basic Info */}
         {currentStep === 1 && (
           <div className="form-section active">
             <h3>Basic Information</h3>
             <div className="form-row">
               <div className="form-group">
-                <label>Hotel Name:</label>
                 <input
                   type="text"
                   name="name"
                   value={newHotel.name}
                   onChange={handleInputChange}
+                  placeholder="Hotel Name"
                   required
                 />
               </div>
+
               <div className="form-group">
-                <label>Address:</label>
                 <input
                   type="text"
                   name="address"
                   value={newHotel.address}
                   onChange={handleInputChange}
+                  placeholder="Address"
                   required
                 />
               </div>
-            </div>
 
-            <div className="form-row">
               <div className="form-group">
-                <label>Email:</label>
                 <input
                   type="email"
                   name="email"
                   value={newHotel.email}
                   onChange={handleInputChange}
+                  placeholder="Email"
                   required
                 />
               </div>
+
               <div className="form-group">
-                <label>Contact Phone:</label>
                 <input
                   type="text"
                   name="contact_phone"
                   value={newHotel.contact_phone}
                   onChange={handleInputChange}
+                  placeholder="Contact Phone"
                   required
                 />
               </div>
             </div>
-
-            <div className="form-navigation">
-              <button type="button" onClick={nextStep} className="btn-next">
-                Next →
-              </button>
-            </div>
+            <button type="button" className="btn btn-primary" onClick={nextStep}>
+              Next →
+            </button>
           </div>
         )}
 
-        {/* Step 2: Hotel Details */}
         {currentStep === 2 && (
           <div className="form-section active">
             <h3>Hotel Details</h3>
             <div className="form-row">
               <div className="form-group">
-                <label>Standard (Hadhi):</label>
                 <select
                   name="hadhi"
                   value={newHotel.hadhi}
                   onChange={handleInputChange}
-                  required
+                  
                 >
                   <option value="">Select Standard</option>
                   <option value="economy">Economy</option>
                   <option value="standard">Standard</option>
                   <option value="luxury">Luxury</option>
                   <option value="premium">Premium</option>
+                  
                 </select>
               </div>
+
               <div className="form-group">
-                <label>Total Rooms:</label>
                 <input
                   type="number"
                   name="total_rooms"
                   value={newHotel.total_rooms}
                   onChange={handleInputChange}
-                  required
+                  placeholder="Total Rooms"
+                  
                 />
               </div>
-            </div>
 
-            <div className="form-row">
               <div className="form-group">
-                <label>Hotel Type:</label>
                 <select
                   name="type"
                   value={newHotel.type}
                   onChange={handleInputChange}
-                  required
+                  
                 >
                   <option value="">Select Type</option>
                   <option value="hotel">Hotel</option>
@@ -207,43 +395,40 @@ const PageHotel = () => {
                   <option value="guest_house">Guest House</option>
                   <option value="restaurant">Restaurant</option>
                   <option value="private_house">Private House</option>
+                  <option value="others">Others</option>
                 </select>
               </div>
+
               <div className="form-group">
-                <label>Waste Per Day (kg):</label>
                 <input
                   type="number"
                   name="waste_per_day"
                   value={newHotel.waste_per_day}
                   onChange={handleInputChange}
-                  required
+                  placeholder="Waste Per Day (kg)"
+                  
                 />
               </div>
             </div>
-
-            <div className="form-navigation">
-              <button type="button" onClick={prevStep} className="btn-prev">
-                ← Previous
-              </button>
-              <button type="button" onClick={nextStep} className="btn-next">
-                Next →
-              </button>
-            </div>
+            <button type="button" className="btn btn-outline" onClick={prevStep}>
+              ← Previous
+            </button>
+            <button type="button" className="btn btn-primary" onClick={nextStep}>
+              Next →
+            </button>
           </div>
         )}
 
-        {/* Step 3: Service Details */}
         {currentStep === 3 && (
           <div className="form-section active">
             <h3>Service Details</h3>
             <div className="form-row">
               <div className="form-group">
-                <label>Collection Frequency</label>
                 <select
                   name="collection_frequency"
                   value={newHotel.collection_frequency}
                   onChange={handleInputChange}
-                  required
+                  
                 >
                   <option value="">-- Select --</option>
                   <option value="daily">Daily</option>
@@ -258,40 +443,38 @@ const PageHotel = () => {
               </div>
 
               <div className="form-group">
-                <label>Currency</label>
                 <select
                   name="currency"
                   value={newHotel.currency}
                   onChange={handleInputChange}
-                  required
+                 
                 >
                   <option value="">Select Currency</option>
-                  <option value="">Select Currency</option>
-                  <option value="USD">USD ($)</option>
-                  <option value="EUR">EUR (€)</option>
-                  <option value="GBP">GBP (£)</option>
-                  <option value="TZS">TZS (TSh)</option>
-                  <option value="KES">KES (KSh)</option>
-                  <option value="UGX">UGX (USh)</option>
-                  <option value="ZAR">ZAR (R)</option>
-                  <option value="AUD">AUD (A$)</option>
-                  <option value="CAD">CAD (C$)</option>
-                  <option value="JPY">JPY (¥)</option>
-                  <option value="INR">INR (₹)</option>
-                  <option value="CHF">CHF (Fr)</option>
-                  <option value="CNY">CNY (¥)</option>
-                  <option value="SGD">SGD (S$)</option>
-                  <option value="NZD">NZD (NZ$)</option>
+                 <option value="USD">USD ($)</option>
+                    <option value="EUR">EUR (€)</option>
+                    <option value="GBP">GBP (£)</option>
+                    <option value="TZS">TZS (TSh)</option>
+                    <option value="KES">KES (KSh)</option>
+                    <option value="UGX">UGX (USh)</option>
+                    <option value="ZAR">ZAR (R)</option>
+                    <option value="AUD">AUD (A$)</option>
+                    <option value="CAD">CAD (C$)</option>
+                    <option value="JPY">JPY (¥)</option>
+                    <option value="INR">INR (₹)</option>
+                    <option value="CHF">CHF (Fr)</option>
+                    <option value="CNY">CNY (¥)</option>
+                    <option value="SGD">SGD (S$)</option>
+                    <option value="NZD">NZD (NZ$)</option>
+
                 </select>
               </div>
 
               <div className="form-group">
-                <label>Payment Account:</label>
                 <select
                   name="payment_account"
                   value={newHotel.payment_account}
                   onChange={handleInputChange}
-                  required
+                  
                 >
                   <option value="">-- Select Payment Method --</option>
                   <option value="account">Account</option>
@@ -300,15 +483,10 @@ const PageHotel = () => {
                 </select>
               </div>
             </div>
-
-            <div className="form-navigation">
-              <button type="button" onClick={prevStep} className="btn-prev">
-                ← Previous
-              </button>
-              <button type="submit" className="btn-submit">
-                Save Information
-              </button>
-            </div>
+            <button type="button" className="btn btn-outline" onClick={prevStep}>
+              ← Previous
+            </button>
+            <button type="submit">Save Information</button>
           </div>
         )}
       </form>

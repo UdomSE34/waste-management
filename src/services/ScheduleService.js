@@ -28,3 +28,18 @@ export const sendTodayMessage = async (hotelId = null) =>
 
 export const sendTomorrowMessage = async (hotelId = null) =>
   (await api.post("send_tomorrow_message/", hotelId ? { hotel_id: hotelId } : {})).data;
+
+// Download filtered PDF
+export const downloadFilteredPDF = async (addresses = []) => {
+  try {
+    const res = await api.post("/download_filtered_pdf/", {
+      addresses: addresses
+    }, {
+      responseType: 'blob'
+    });
+    return res.data;
+  } catch (error) {
+    console.error("Failed to download filtered PDF:", error);
+    throw error;
+  }
+};

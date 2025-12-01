@@ -1,18 +1,17 @@
 import axios from "axios";
 
-// Base API client pointing to /api/
+// Base API client
 const api = axios.create({
-  baseURL: "https://back.deploy.tz/api",
-//  baseURL: "http://127.0.0.1:8000/api",
+  baseURL: "https://back.deploy.tz/api",  
   timeout: 10000,
 });
 
-// Attach token dynamically to every request
+// Attach token to every request
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("authToken");
     if (token) {
-      config.headers["Authorization"] = `Token ${token}`; // DRF expects "Token <token>"
+      config.headers["Authorization"] = `Token ${token}`;
     }
     return config;
   },
@@ -20,36 +19,45 @@ api.interceptors.request.use(
 );
 
 const hotelService = {
-  // POST new pending hotel
+  // Get unclaimed hotels
+  getUnclaimedHotels: async (search = "") => {
+    const response = await api.get("/hotels/unclaimed_hotels/", {
+      params: { search },
+    });
+    return response.data;
+  },
+
+  // Claim hotels (fixed URL)
+  claimHotels: async (clientId, hotelIds) => {
+    try {
+      const response = await api.patch("/hotels/claim_hotels/", { // <- dash instead of underscore
+        client_id: clientId,
+        hotel_ids: hotelIds,
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error claiming hotels:", error.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  // Create pending hotel
   createPendingHotel: async (hotelData) => {
-    try {
-      const response = await api.post("/pending-hotels/", hotelData);
-      return response.data;
-    } catch (error) {
-      handleError(error);
-    }
+    const response = await api.post("/pending-hotels/", hotelData);
+    return response.data;
   },
 
-  // GET all pending hotels
-  getPendingHotels: async () => {
-    try {
-      const response = await api.get("/pending-hotels/");
-      return response.data;
-    } catch (error) {
-      handleError(error);
-    }
+  // Fetch hotels
+  fetchHotels: async (filters = {}) => {
+    const response = await api.get("/hotels/", { params: filters });
+    return response.data;
   },
-};
 
-// Centralized error handling
-const handleError = (error) => {
-  if (error.response) {
-    throw new Error(error.response.data?.detail || JSON.stringify(error.response.data));
-  } else if (error.request) {
-    throw new Error("Network error. Please check your connection.");
-  } else {
-    throw new Error(error.message || "An unexpected error occurred.");
-  }
+  // Get my hotels
+  getMyHotels: async () => {
+    const response = await api.get("/hotels/my_hotels/");
+    return response.data;
+  },
 };
 
 export default hotelService;

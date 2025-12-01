@@ -416,7 +416,7 @@ const HotelClients = () => {
                     type="email"
                     name="email"
                     className="form-control"
-                    required
+                   
                     value={newHotel.email}
                     onChange={handleInputChange}
                   />
@@ -470,6 +470,7 @@ const HotelClients = () => {
                     <option value="guest_house">Guest House</option>
                     <option value="restaurant">Restaurant</option>
                     <option value="private_house">Private House</option>
+                    <option value="others">Others</option>
                   </select>
                 </div>
 
@@ -512,7 +513,7 @@ const HotelClients = () => {
                     name="currency"
                     value={newHotel.currency}
                     onChange={handleInputChange}
-                    required
+                    
                     className="form-control"
                   >
                     <option value="">Select Currency</option>
@@ -540,7 +541,7 @@ const HotelClients = () => {
                     name="payment_account"
                     value={newHotel.payment_account}
                     onChange={handleInputChange}
-                    required
+                    
                   >
                     <option value="">-- Select Payment Method --</option>
                     <option value="account">Account</option>

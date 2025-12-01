@@ -13,6 +13,8 @@ export default function Sidebar() {
     { to: "/staff/completed-schedules", icon: "bi-check2-circle", label: "Completed Schedules" },
     { to: "/staff/user-notifications", icon: "bi-bell", label: "User Notifications" },
     { to: "/staff/invoices", icon: "bi-receipt", label: "Invoices" },
+    { to: "/staff/storage", icon: "bi-folder2-open", label: "Storage Management" },
+    { to: "/staff/client-management", icon: "bi-people-fill", label: "Client Management" }
     
   ];
 

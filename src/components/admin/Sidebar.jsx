@@ -10,7 +10,8 @@ export default function Sidebar() {
     { to: "/admin/workers", icon: "bi-people", label: "Workers" },
     { to: "/admin/deleted-workers", icon: "bi-person-x", label: "Deleted Workers" },
     { to: "/admin/hotels", icon: "bi-building", label: "Hotel Clients" },
-    { to: "/admin/dashboard", icon: "bi-speedometer2", label: "Routes" },
+    { to: "/admin/pending-hotels", icon: "bi-building", label: "Pending Hotels" },
+    { to: "/admin/routes", icon: "bi-speedometer2", label: "Routes" },
     { to: "/admin/scheduling", icon: "bi-calendar-event", label: "Scheduling" },
     { to: "/admin/incomplete-schedules", icon: "bi-bar-chart-line", label: "Incomplete Schedules" },
     { to: "/admin/completed-schedules", icon: "bi-check2-circle", label: "Completed Schedules" },
@@ -18,6 +19,8 @@ export default function Sidebar() {
     { to: "/admin/payment-slips", icon: "bi-file-earmark-text", label: "Payment Slips" },
     { to: "/admin/invoice", icon: "bi-receipt", label: "Invoices" },
     { to: "/admin/monthly-summary", icon: "bi-bar-chart-line", label: "Monthly Summary" },
+    { to: "/admin/storage", icon: "bi-folder2-open", label: "Storage Management" },
+    { to: "/admin/client-management", icon: "bi-people-fill", label: "Client Management" }
   ];
 
   return (

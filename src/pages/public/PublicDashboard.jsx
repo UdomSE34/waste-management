@@ -196,7 +196,7 @@ const PublicDashboard = () => {
             <i className="bi bi-trash3"></i>
           </div>
           <div className="stat-info">
-            <h3>{monthlySummary.totalKg.toLocaleString()} L</h3>
+            <h3>{monthlySummary.totalKg.toLocaleString()} Kg</h3>
             <p>Total Waste Collected</p>
           </div>
         </div>
@@ -238,7 +238,7 @@ const PublicDashboard = () => {
             <YAxis />
             <Tooltip />
             <Legend />
-            <Bar dataKey="waste" fill="#1e3a5f" name="Waste (L)" />
+            <Bar dataKey="waste" fill="#1e3a5f" name="Waste (kg)" />
             <Bar dataKey="payment" fill="#28a745" name="Payments (TZS)" />
           </BarChart>
         </ResponsiveContainer>

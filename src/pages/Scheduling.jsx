@@ -7,6 +7,7 @@ import {
   updateScheduleVisibility,
   sendTodayMessage,
   sendTomorrowMessage,
+  downloadFilteredPDF, // Add this new service function
 } from "../services/ScheduleService";
 import { getHotels } from "../services/hotelServices";
 
@@ -26,8 +27,9 @@ const Scheduling = () => {
   const [sendTomorrow, setSendTomorrow] = useState(false);
   const alertRef = useRef(null);
 
-  // 🔥 New filter state
+  // 🔥 Updated filter state to store selected hotel addresses
   const [hotelFilter, setHotelFilter] = useState("All");
+  const [selectedHotelAddresses, setSelectedHotelAddresses] = useState([]);
 
   const isWithinTimeWindow = () => {
     const now = new Date();
@@ -47,19 +49,34 @@ const Scheduling = () => {
     }
   };
 
+  // 🔥 UPDATED: Handle download PDF with filters
   const handleDownloadPDF = async () => {
     try {
-      const response = await fetch("https://back.deploy.tz/download-schedules/");
-      const blob = await response.blob();
+      // Get the currently filtered hotel addresses
+      const addressesToDownload = hotelFilter === "All" 
+        ? [] // Empty array means all hotels
+        : [hotelFilter]; // Single selected hotel
+      
+      const response = await downloadFilteredPDF(addressesToDownload);
+      const blob = new Blob([response], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", "today_yesterday_schedules.pdf");
+      
+      // Create filename based on filter
+      const filename = hotelFilter === "All" 
+        ? "all_hotels_schedules.pdf"
+        : `${hotelFilter.toLowerCase()}_schedules.pdf`;
+      
+      link.setAttribute("download", filename);
       document.body.appendChild(link);
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-    } catch (err) {}
+    } catch (err) {
+      console.error("Failed to download PDF:", err);
+      alert("Failed to download PDF. Please try again.");
+    }
   };
 
   // Fetch data
@@ -105,6 +122,10 @@ const Scheduling = () => {
         const initSelected = {};
         hotelsRes.forEach((h) => (initSelected[h.id] = false));
         setSelectedHotels(initSelected);
+
+        // 🔥 Extract unique addresses for filter dropdown
+        const uniqueAddresses = [...new Set(collectionsRes.map(c => c.address))].filter(Boolean);
+        setSelectedHotelAddresses(uniqueAddresses);
       } catch (err) {
         setError(err.message || "Error fetching data");
       } finally {
@@ -280,7 +301,7 @@ const Scheduling = () => {
         <div className="card-header">
           <h3>Collections</h3>
 
-          {(collections.length > 0 || yesterdayCount > 0) && (
+          {(filteredCollections.length > 0 || yesterdayCount > 0) && (
             <button className="btn btn-primary" onClick={handleDownloadPDF}>
               📄 Download PDF
             </button>
@@ -295,11 +316,20 @@ const Scheduling = () => {
               className="form-control"
               style={{ width: "200px", display: "inline-block" }}
             >
-              <option value="All">All</option>
-              <option value="Michanvi">Michanvi</option>
-              <option value="Page">Page</option>
-              <option value="Bwejuu">Bwejuu</option>
+              <option value="All">All Hotels</option>
+              {selectedHotelAddresses.map((address) => (
+                <option key={address} value={address}>
+                  {address}
+                </option>
+              ))}
             </select>
+            
+            {/* 🔥 Show current filter info */}
+            {hotelFilter !== "All" && (
+              <span style={{ marginLeft: "10px", color: "#666", fontSize: "0.9rem" }}>
+                Showing: {hotelFilter} ({filteredCollections.length} schedules)
+              </span>
+            )}
           </div>
         </div>
 
@@ -323,7 +353,7 @@ const Scheduling = () => {
                       checked={selectedHotels[hotel.id] || false}
                       onChange={() => handleCheckboxChange(hotel.id)}
                     />
-                    {hotel.name}
+                    {hotel.name} ({hotel.address})
                   </label>
                 </div>
               ))}

@@ -17,6 +17,7 @@ import AdminMessaging from "./pages/admin/AdminMessaging";
 import AdminPaymentSlips from "./components/admin/AdminPaymentSlips";
 import MonthlySummaryDashboard from "./pages/admin/MonthlySummaryPage";
 import AdminInvoice from "./pages/admin/AdminInvoices"
+import Storage from "./pages/admin/Storage";
 
 // Staff Pages
 import Dashboard from "./pages/Dashboard";
@@ -32,6 +33,7 @@ import IncompleteSchedule from "./pages/IncompleteSchedule";
 import UserNotifications from "./pages/UserNotifications";
 import StaffMessaging from "./pages/StaffMessaging";
 import Invoices from "./pages/Invoices";
+import ClientManagement from "./pages/ClientManagement";
 
 
 
@@ -42,6 +44,7 @@ import ClientPendingHotels from "./pages/client/ClientPendingHotels";
 import ClientScheduling from "./pages/client/ClientScheduling";
 import PaymentSlips from "./pages/client/PaymentSlip";
 import ClientInvoices from "./pages/client/ClientInvoices";
+import ClientProfile from "./pages/client/ClientProfile";
 
 // Public Municipul
 import PublicDashboard from "./pages/public/PublicDashboard";
@@ -72,6 +75,7 @@ export default function App() {
           <Route path="schedule" element={<ClientScheduling />} />
           <Route path="payment-slips" element={<PaymentSlips />} />
           <Route path="invoices" element={<ClientInvoices />} />
+          <Route path="profile" element={<ClientProfile />} />
           <Route path="" element={<Navigate to="hotel" />} />
         </Route>
       </Route>
@@ -92,6 +96,8 @@ export default function App() {
           <Route path="user-notifications" element={<UserNotifications />} />
           <Route path="staff-messaging" element={<StaffMessaging />} />
           <Route path="invoices" element={<Invoices />} />
+          <Route path="storage" element={<Storage />} />
+          <Route path="client-management" element={<ClientManagement />} />
           <Route path="*" element={<Navigate to="/staff" />} />
         </Route>
       </Route>
@@ -99,7 +105,7 @@ export default function App() {
       {/* Admin Protected Routes */}
       <Route element={<PrivateRoute allowedRoles={["Admin"]} />}>
         <Route path="/admin/*" element={<AdminLayout />}>
-          <Route path="workers" element={<AdminWorkers />} />
+          <Route index element={<AdminWorkers />} />
           <Route path="salary-dashboard" element={<SalaryDashboard />} />
           <Route path="salary-policies" element={<SalaryPolicies />} />
           <Route path="attendance" element={<AttendanceDashboard />} />
@@ -109,12 +115,15 @@ export default function App() {
           <Route path="payment-slips" element={<AdminPaymentSlips />} />
           <Route path="monthly-summary" element={<MonthlySummaryDashboard />} />
           <Route path="invoice" element={<AdminInvoice/>}/>
-          <Route path="*" element={<Navigate to="/admin/workers" />} />
-          <Route pasth="dashboard" element={<Dashboard />} />
+          <Route path="routes" element={<Dashboard />} />
+           <Route path="pending-hotels" element={<PendingHotels />} />
           <Route path="scheduling" element={<Scheduling />} />
           <Route path="hotels" element={<Hotels />} />
           <Route path="completed-schedules" element={<CompletedSchedule />} />
           <Route path="incomplete-schedules" element={<IncompleteSchedule />} />
+          <Route path="storage" element={<Storage />} />
+          <Route path="client-management" element={<ClientManagement />} />
+          <Route path="*" element={<Navigate to="/admin" />} />
         </Route>
       </Route>
 

@@ -8,6 +8,7 @@ const api = axios.create({
   timeout: 10000,
 });
 
+
 // Attach token dynamically to every request
 api.interceptors.request.use(
   (config) => {
