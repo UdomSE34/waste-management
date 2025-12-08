@@ -491,14 +491,14 @@ const Invoices = () => {
                   </button>
                   {inv.files && inv.files.length > 0 && (
                     <>
-                      {/* <button
+                      <button
                         className="btn btn-primary btn-sm"
                         onClick={() => openSendModal(inv)}
                         disabled={inv.status === "sent"}
                         title="Send Invoice"
                       >
                         📤 Send
-                      </button> */}
+                      </button>
                       <button
                         className="btn btn-success btn-sm"
                         onClick={() => handleDownloadFiles(inv)}
