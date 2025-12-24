@@ -28,7 +28,7 @@ const WorkersDashboard = () => {
   };
 
   // Match backend role values exactly
-  const roles = ["Staff", "Workers", "HR", "Supervisors", "Drivers", "Council"];
+  const roles = ["Admin","Staff", "Workers", "HR", "Supervisors", "Drivers", "Council"];
 
   // New user form
   const [newUser, setNewUser] = useState({

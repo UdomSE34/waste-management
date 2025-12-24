@@ -1,3 +1,4 @@
+// services/ScheduleService.js
 import axios from "axios";
 
 const API_BASE_URL = "/api/schedules/";
@@ -14,7 +15,16 @@ api.interceptors.request.use(
 );
 
 // Collections
-export const getCollections = async () => (await api.get("")).data;
+export const getCollections = async () => {
+  try {
+    const response = await api.get("");
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching collections:', error);
+    throw error;
+  }
+};
+
 export const updateCollection = async (schedule_id, updateData) =>
   (await api.patch(`${schedule_id}/`, updateData)).data;
 
@@ -40,6 +50,43 @@ export const downloadFilteredPDF = async (addresses = []) => {
     return res.data;
   } catch (error) {
     console.error("Failed to download filtered PDF:", error);
+    throw error;
+  }
+};
+
+// ✅ AUTO-GENERATION Functions
+export const checkAndInitialize = async () => {
+  try {
+    const status = await api.get("system_status/");
+    
+    if (!status.data.current_week?.has_schedules) {
+      const initResponse = await api.post("initialize_system/");
+      return { auto_initialized: true, data: initResponse.data };
+    }
+    
+    return { auto_initialized: false, data: status.data };
+  } catch (error) {
+    console.warn('Auto-initialization check failed:', error);
+    return { auto_initialized: false, error: error.message };
+  }
+};
+
+export const getSystemStatus = async () => {
+  try {
+    const response = await api.get("system_status/");
+    return response.data;
+  } catch (error) {
+    console.error('Error getting system status:', error);
+    throw error;
+  }
+};
+
+export const initializeSystem = async () => {
+  try {
+    const response = await api.post("initialize_system/");
+    return response.data;
+  } catch (error) {
+    console.error('Error initializing system:', error);
     throw error;
   }
 };

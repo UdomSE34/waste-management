@@ -1,3 +1,4 @@
+// Dashboard.jsx
 import { useState, useEffect, useRef } from "react";
 import DataTable from "../components/DataTable";
 import "../css/Schedulling.css";
@@ -7,7 +8,8 @@ import {
   updateScheduleVisibility,
   sendTodayMessage,
   sendTomorrowMessage,
-  downloadFilteredPDF, // Add this new service function
+  downloadFilteredPDF,
+  checkAndInitialize
 } from "../services/ScheduleService";
 import { getHotels } from "../services/hotelServices";
 
@@ -21,15 +23,106 @@ const Scheduling = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedHotels, setSelectedHotels] = useState({});
   const [apologyModalVisible, setApologyModalVisible] = useState(false);
-  const [selectedHotelIdForApology, setSelectedHotelIdForApology] =
-    useState(null);
+  const [selectedHotelIdForApology, setSelectedHotelIdForApology] = useState(null);
   const [sendToday, setSendToday] = useState(false);
   const [sendTomorrow, setSendTomorrow] = useState(false);
   const alertRef = useRef(null);
 
-  // 🔥 Updated filter state to store selected hotel addresses
+  // ✅ HII NDIO ARRAY YAKO YA FILTER
+  const address = [
+    "Paje",
+    "Michanvi",
+    "Bwejuu",
+  ];
+  
+  // 🔥 Updated filter state
   const [hotelFilter, setHotelFilter] = useState("All");
-  const [selectedHotelAddresses, setSelectedHotelAddresses] = useState([]);
+
+  // Fetch data with AUTO-GENERATION
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        // ✅ AUTO-GENERATION: Check and initialize system
+        await checkAndInitialize();
+        
+        const [collectionsRes, hotelsRes] = await Promise.all([
+          getCollections(),
+          getHotels(),
+        ]);
+
+        // ✅ FIX: Ensure data is array
+        const collectionsArray = Array.isArray(collectionsRes) ? collectionsRes : 
+                                collectionsRes?.results ? collectionsRes.results : 
+                                collectionsRes?.schedules ? collectionsRes.schedules : 
+                                collectionsRes?.data ? collectionsRes.data : [];
+
+        const hotelsArray = Array.isArray(hotelsRes) ? hotelsRes : 
+                           hotelsRes?.results ? hotelsRes.results : 
+                           hotelsRes?.data ? hotelsRes.data : [];
+
+        const today = new Date().toLocaleDateString("en-US", {
+          weekday: "long",
+        });
+
+        const yesterdayDate = new Date();
+        yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+        const yesterday = yesterdayDate.toLocaleDateString("en-US", {
+          weekday: "long",
+        });
+
+        // ✅ FILTER: Tafuta address zilizo kwenye array yako
+        // Hii inafilter kabla ya kuweka kwenye state
+        const filteredCollections = collectionsArray.filter(item => {
+          if (!item.address) return false;
+          
+          // Check kama address yoyote kwenye array iko kwenye item.address
+          return address.some(addr => 
+            item.address.toLowerCase().includes(addr.toLowerCase())
+          );
+        });
+
+        const todaySchedules = filteredCollections.filter(
+          (item) => item.status === "Pending" && item.day === today
+        );
+
+        const yesterdaySchedules = filteredCollections.filter(
+          (item) => item.status === "Pending" && item.day === yesterday
+        );
+
+        if (yesterdaySchedules.length > 0) {
+          setYesterdayCount(yesterdaySchedules.length);
+          setShowAlert(true);
+          setTimeout(() => setShowAlert(false), 8000);
+        }
+
+        setCollections([
+          ...yesterdaySchedules.map((s) => ({ ...s, isYesterday: true })),
+          ...todaySchedules.map((s) => ({ ...s, isYesterday: false })),
+        ]);
+
+        // Filter hotels pia kwa address
+        const filteredHotels = hotelsArray.filter(hotel => 
+          address.some(addr => 
+            hotel.address.toLowerCase().includes(addr.toLowerCase())
+          )
+        );
+        setHotels(filteredHotels);
+
+        const initSelected = {};
+        filteredHotels.forEach((h) => (initSelected[h.id || h.hotel_id] = false));
+        setSelectedHotels(initSelected);
+        
+      } catch (err) {
+        console.error('Fetch error:', err);
+        setError(err.message || "Error fetching data");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   const isWithinTimeWindow = () => {
     const now = new Date();
@@ -52,10 +145,9 @@ const Scheduling = () => {
   // 🔥 UPDATED: Handle download PDF with filters
   const handleDownloadPDF = async () => {
     try {
-      // Get the currently filtered hotel addresses
       const addressesToDownload = hotelFilter === "All" 
-        ? [] // Empty array means all hotels
-        : [hotelFilter]; // Single selected hotel
+        ? []
+        : [hotelFilter];
       
       const response = await downloadFilteredPDF(addressesToDownload);
       const blob = new Blob([response], { type: 'application/pdf' });
@@ -63,10 +155,9 @@ const Scheduling = () => {
       const link = document.createElement("a");
       link.href = url;
       
-      // Create filename based on filter
       const filename = hotelFilter === "All" 
         ? "all_hotels_schedules.pdf"
-        : `${hotelFilter.toLowerCase()}_schedules.pdf`;
+        : `${hotelFilter.replace(/\s+/g, '_').toLowerCase()}_schedules.pdf`;
       
       link.setAttribute("download", filename);
       document.body.appendChild(link);
@@ -78,62 +169,6 @@ const Scheduling = () => {
       alert("Failed to download PDF. Please try again.");
     }
   };
-
-  // Fetch data
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [collectionsRes, hotelsRes] = await Promise.all([
-          getCollections(),
-          getHotels(),
-        ]);
-
-        const today = new Date().toLocaleDateString("en-US", {
-          weekday: "long",
-        });
-
-        const yesterdayDate = new Date();
-        yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-        const yesterday = yesterdayDate.toLocaleDateString("en-US", {
-          weekday: "long",
-        });
-
-        const todaySchedules = collectionsRes.filter(
-          (item) => item.status === "Pending" && item.day === today
-        );
-
-        const yesterdaySchedules = collectionsRes.filter(
-          (item) => item.status === "Pending" && item.day === yesterday
-        );
-
-        if (yesterdaySchedules.length > 0) {
-          setYesterdayCount(yesterdaySchedules.length);
-          setShowAlert(true);
-          setTimeout(() => setShowAlert(false), 8000);
-        }
-
-        setCollections([
-          ...yesterdaySchedules.map((s) => ({ ...s, isYesterday: true })),
-          ...todaySchedules.map((s) => ({ ...s, isYesterday: false })),
-        ]);
-
-        setHotels(hotelsRes);
-
-        const initSelected = {};
-        hotelsRes.forEach((h) => (initSelected[h.id] = false));
-        setSelectedHotels(initSelected);
-
-        // 🔥 Extract unique addresses for filter dropdown
-        const uniqueAddresses = [...new Set(collectionsRes.map(c => c.address))].filter(Boolean);
-        setSelectedHotelAddresses(uniqueAddresses);
-      } catch (err) {
-        setError(err.message || "Error fetching data");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
 
   // Alert click outside
   useEffect(() => {
@@ -161,7 +196,7 @@ const Scheduling = () => {
 
       await Promise.all(
         distinctHotels.map((h) =>
-          updateScheduleVisibility(h.id, hotelsToShow.includes(h.id))
+          updateScheduleVisibility(h.id || h.hotel_id, hotelsToShow.includes(h.id || h.hotel_id))
         )
       );
 
@@ -189,11 +224,31 @@ const Scheduling = () => {
     return toMinutes(slotRange.split("–")[1].trim());
   };
 
-  // 🔥 FILTER COLLECTIONS BEFORE TABLE
-  const filteredCollections =
-    hotelFilter === "All"
-      ? collections
-      : collections.filter((c) => c.address === hotelFilter);
+  // Format slot display
+  const formatSlotDisplay = (slotValue) => {
+    if (!slotValue) return "N/A";
+    
+    // Check if slot is "Morning" or "Afternoon"
+    if (slotValue === "Morning") {
+      return "06:00 – 12:00";
+    } else if (slotValue === "Afternoon") {
+      return "06:00 – 18:00";
+    }
+    
+    // Check if slot already contains time range
+    if (slotValue.includes(":")) {
+      return slotValue;
+    }
+    
+    return slotValue;
+  };
+
+  // 🔥 FILTER COLLECTIONS BEFORE TABLE (now uses address array)
+  const filteredCollections = hotelFilter === "All"
+    ? collections
+    : collections.filter((c) => 
+        c.address && c.address.toLowerCase().includes(hotelFilter.toLowerCase())
+      );
 
   // TABLE ROWS
   const rows = filteredCollections.map((item) => {
@@ -204,7 +259,7 @@ const Scheduling = () => {
 
     return {
       Day: item.day + (item.isYesterday ? " (Yesterday)" : ""),
-      "Time Range": item.slot,
+      "Time Range": formatSlotDisplay(item.slot),
       Hotel: item.hotel_name,
       Address: item.address,
       Status: item.status,
@@ -309,22 +364,21 @@ const Scheduling = () => {
 
           {/* HOTEL FILTER UI */}
           <div className="filter-box">
-            <label style={{ marginRight: "10px" }}>Filter Hotel:</label>
+            <label style={{ marginRight: "10px" }}>Filter Location:</label>
             <select
               value={hotelFilter}
               onChange={(e) => setHotelFilter(e.target.value)}
               className="form-control"
               style={{ width: "200px", display: "inline-block" }}
             >
-              <option value="All">All Hotels</option>
-              {selectedHotelAddresses.map((address) => (
-                <option key={address} value={address}>
-                  {address}
+              <option value="All">All Locations</option>
+              {address.map((location) => (
+                <option key={location} value={location}>
+                  {location}
                 </option>
               ))}
             </select>
             
-            {/* 🔥 Show current filter info */}
             {hotelFilter !== "All" && (
               <span style={{ marginLeft: "10px", color: "#666", fontSize: "0.9rem" }}>
                 Showing: {hotelFilter} ({filteredCollections.length} schedules)
@@ -346,12 +400,12 @@ const Scheduling = () => {
             <h3>Select Hotels to Show</h3>
             <div className="modal-body">
               {hotels.map((hotel) => (
-                <div key={hotel.id}>
+                <div key={hotel.id || hotel.hotel_id}>
                   <label>
                     <input
                       type="checkbox"
-                      checked={selectedHotels[hotel.id] || false}
-                      onChange={() => handleCheckboxChange(hotel.id)}
+                      checked={selectedHotels[hotel.id || hotel.hotel_id] || false}
+                      onChange={() => handleCheckboxChange(hotel.id || hotel.hotel_id)}
                     />
                     {hotel.name} ({hotel.address})
                   </label>

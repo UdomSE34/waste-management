@@ -1,13 +1,15 @@
+// Dashboard.jsx
 import { useState, useEffect } from "react";
 import DataTable from "../components/DataTable";
 import "../css/Dashboard.css";
 
-// Services
+// Services - Tuma service yako
 import {
-  getCollections,
-  createCollection,
-  updateCollection,
-  deleteCollection,
+  getSchedules,
+  createSchedule,
+  updateSchedule,
+  deleteSchedule,
+  checkAndInitialize  // ✅ Hii ni mpya kwa auto-generation
 } from "../services/DashboardService";
 import { getHotels } from "../services/hotelServices";
 
@@ -58,13 +60,26 @@ const Scheduling = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // ✅ AUTO: Check and initialize system in background
+        await checkAndInitialize();
+        
         const [collectionsRes, hotelsRes] = await Promise.all([
-          getCollections(),
+          getSchedules(),
           getHotels(),
         ]);
 
-        setCollections(collectionsRes);
-        setHotels(hotelsRes);
+        // ✅ FIX: Ensure data is always an array
+        const collectionsArray = Array.isArray(collectionsRes) ? collectionsRes : 
+                                collectionsRes?.results ? collectionsRes.results : 
+                                collectionsRes?.schedules ? collectionsRes.schedules : 
+                                collectionsRes?.data ? collectionsRes.data : [];
+        
+        const hotelsArray = Array.isArray(hotelsRes) ? hotelsRes : 
+                           hotelsRes?.results ? hotelsRes.results : 
+                           hotelsRes?.data ? hotelsRes.data : [];
+
+        setCollections(collectionsArray);
+        setHotels(hotelsArray);
       } catch (err) {
         setError(err.message || "Error fetching data");
       } finally {
@@ -75,14 +90,13 @@ const Scheduling = () => {
   }, []);
 
   /** ---------- ADD ---------- **/
-  /** ---------- ADD ---------- **/
   const handleAddInputChange = (e) => {
     const { name, value } = e.target;
     setAddFormData((prev) => ({ ...prev, [name]: value }));
 
     if (name === "hotel") {
       const selectedHotel = hotels.find(
-        (h) => String(h.hotel_id) === String(value)
+        (h) => String(h.hotel_id || h.id) === String(value)
       );
       const freq = Number(selectedHotel?.collection_frequency) || 0;
 
@@ -128,6 +142,7 @@ const Scheduling = () => {
         day: d.day,
         slot: d.slot,
         status: addFormData.status,
+        is_visible: true
       }));
 
     if (payload.length === 0) {
@@ -136,15 +151,15 @@ const Scheduling = () => {
     }
 
     try {
-      const createdCollections = await Promise.all(
-        payload.map((item) => createCollection(item))
+      const createdSchedules = await Promise.all(
+        payload.map((item) => createSchedule(item))
       );
 
-      setCollections([...collections, ...createdCollections]);
+      setCollections([...collections, ...createdSchedules]);
       resetAddForm();
     } catch (err) {
-      console.error("Failed to create collection:", err);
-      setError("Failed to create collection. Please try again.");
+      console.error("Failed to create schedule:", err);
+      setError("Failed to create schedule. Please try again.");
     }
   };
 
@@ -160,11 +175,11 @@ const Scheduling = () => {
     setEditingCollection(collection);
 
     const hotel = hotels.find(
-      (h) => String(h.hotel_id) === String(collection.hotel)
+      (h) => String(h.hotel_id || h.id) === String(collection.hotel)
     );
 
     setEditFormData({
-      hotel: collection.hotel, // keep hotel_id for API
+      hotel: collection.hotel,
       hotel_name: hotel?.name || collection.hotel_name || "Unknown Hotel",
       status: collection.status,
       collection_frequency: 1,
@@ -173,7 +188,7 @@ const Scheduling = () => {
     setEditSelectedDays([
       {
         day: collection.day,
-        slot: collection.slot || "", // use slot instead of start/end time
+        slot: collection.slot || "",
       },
     ]);
 
@@ -197,12 +212,12 @@ const Scheduling = () => {
     e.preventDefault();
 
     try {
-      const updated = await updateCollection(editingCollection.schedule_id, {
-        hotel: editFormData.hotel, // pass hotel_id to API
+      const updated = await updateSchedule(editingCollection.schedule_id, {
+        hotel: editFormData.hotel,
         status: editFormData.status,
         day: editSelectedDays[0]?.day,
-        start_time: editSelectedDays[0]?.start_time,
-        end_time: editSelectedDays[0]?.end_time,
+        slot: editSelectedDays[0]?.slot,
+        is_visible: editingCollection.is_visible || true
       });
 
       setCollections((prev) =>
@@ -213,8 +228,8 @@ const Scheduling = () => {
 
       resetEditForm();
     } catch (err) {
-      console.error("Failed to update collection:", err);
-      setError("Failed to update collection. Please try again.");
+      console.error("Failed to update schedule:", err);
+      setError("Failed to update schedule. Please try again.");
     }
   };
 
@@ -237,7 +252,7 @@ const Scheduling = () => {
       return;
 
     try {
-      await deleteCollection(id);
+      await deleteSchedule(id);
       setCollections((prev) => prev.filter((c) => c.schedule_id !== id));
     } catch (err) {
       console.error("Delete failed:", err);
@@ -246,7 +261,9 @@ const Scheduling = () => {
   };
 
   if (loading) return <div className="loading">Loading scheduling data...</div>;
-  if (error) return <div className="error">Error: {error}</div>;
+  
+  // ✅ FIX: Check if collections is an array before using filter
+  const collectionsArray = Array.isArray(collections) ? collections : [];
 
   return (
     <div className="content">
@@ -259,25 +276,25 @@ const Scheduling = () => {
           <div className="card-header">
             <h3>Total Hotels</h3>
             <span>
-              <i class="bi bi-house-door"></i>
+              <i className="bi bi-house-door"></i>
             </span>
           </div>
-          <h4>{hotels.length}</h4>
+          <h4>{Array.isArray(hotels) ? hotels.length : 0}</h4>
         </div>
 
         <div className="card">
           <div className="card-header">
             <h3>Total Requests</h3>
             <span>
-              <i class="bi bi-clipboard-data"></i>
+              <i className="bi bi-clipboard-data"></i>
             </span>
           </div>
-          <h4>{collections.length}</h4>
+          <h4>{collectionsArray.length}</h4>
           <p>
-            {collections.filter((c) => c.status === "Pending").length} pending •{" "}
-            {collections.filter((c) => c.status === "In Progress").length} in
+            {collectionsArray.filter((c) => c.status === "Pending").length} pending •{" "}
+            {collectionsArray.filter((c) => c.status === "In_Progress").length} in
             progress •{" "}
-            {collections.filter((c) => c.status === "Completed").length}{" "}
+            {collectionsArray.filter((c) => c.status === "Completed").length}{" "}
             completed
           </p>
         </div>
@@ -295,31 +312,44 @@ const Scheduling = () => {
           </button>
         </div>
 
-        <DataTable
-          columns={["Day", "Slot", "Hotel", "Status", "Action"]}
-          rows={collections.map((item) => ({
-            Day: item.day,
-            Slot: item.slot || "N/A", // show slot instead of start_time/end_time
-            Hotel: item.hotel_name,
-            Status: item.status,
-            Action: (
-              <div className="action-buttons">
-                <button
-                  className="btn btn-outline"
-                  onClick={() => openEditModal(item)}
-                >
-                  Edit
-                </button>
-                <button
-                  className="btn btn-danger"
-                  onClick={() => handleDelete(item.schedule_id)}
-                >
-                  Delete
-                </button>
-              </div>
-            ),
-          }))}
-        />
+        {collectionsArray.length > 0 ? (
+          <DataTable
+            columns={["Day", "Slot", "Date", "Hotel", "Status", "Action"]}
+            rows={collectionsArray.map((item) => ({
+              Day: item.day,
+              Slot: item.slot || "N/A",
+              Date:item.schedule_date,
+              Hotel: item.hotel_name || `Hotel ${item.hotel}`,
+              Status: item.status,
+              Action: (
+                <div className="action-buttons">
+                  <button
+                    className="btn btn-outline"
+                    onClick={() => openEditModal(item)}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    className="btn btn-danger"
+                    onClick={() => handleDelete(item.schedule_id)}
+                  >
+                    Delete
+                  </button>
+                </div>
+              ),
+            }))}
+          />
+        ) : (
+          <div className="empty-state">
+            <p>No schedules found</p>
+            <button 
+              className="btn btn-primary"
+              onClick={() => setShowAddModal(true)}
+            >
+              + Create First Schedule
+            </button>
+          </div>
+        )}
       </div>
 
       {/* -------- ADD MODAL -------- */}
@@ -345,20 +375,11 @@ const Scheduling = () => {
                   onChange={handleAddInputChange}
                 >
                   <option value="">Select Hotel</option>
-                  {hotels
-                    .filter(
-                      (hotel) =>
-                        !collections.some(
-                          (c) =>
-                            c.hotel === hotel.hotel_id &&
-                            c.status === "Completed"
-                        )
-                    )
-                    .map((hotel) => (
-                      <option key={hotel.hotel_id} value={hotel.hotel_id}>
-                        {hotel.name} - {hotel.address}
-                      </option>
-                    ))}
+                  {Array.isArray(hotels) && hotels.map((hotel) => (
+                    <option key={hotel.hotel_id || hotel.id} value={hotel.hotel_id || hotel.id}>
+                      {hotel.name} - {hotel.address}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -373,7 +394,7 @@ const Scheduling = () => {
                   onChange={handleAddInputChange}
                 >
                   <option value="Pending">Pending</option>
-                  <option value="In Progress">In Progress</option>
+                  <option value="In_Progress">In Progress</option>
                   <option value="Completed">Completed</option>
                 </select>
               </div>
@@ -440,7 +461,7 @@ const Scheduling = () => {
       )}
 
       {/* -------- EDIT MODAL -------- */}
-      {showEditModal && (
+      {showEditModal && editingCollection && (
         <div className="modal">
           <div className="modal-content">
             <div className="modal-header">
@@ -460,7 +481,6 @@ const Scheduling = () => {
                   value={editFormData.hotel_name || "Unknown Hotel"}
                   readOnly
                 />
-                {/* Hidden field ensures hotel_id is sent */}
                 <input type="hidden" name="hotel" value={editFormData.hotel} />
               </div>
 
@@ -475,9 +495,8 @@ const Scheduling = () => {
                   onChange={handleEditInputChange}
                 >
                   <option value="Pending">Pending</option>
-                  <option value="In Progress">In Progress</option>
+                  <option value="In_Progress">In Progress</option>
                   <option value="Completed">Completed</option>
-                  <option value="Delayed">Delayed</option>
                 </select>
               </div>
 
@@ -515,9 +534,7 @@ const Scheduling = () => {
                       >
                         <option value="">-- Select Slot --</option>
                         <option value="06:00 – 12:00">Morning (06:00 – 12:00)</option>
-                        <option value="06:00 – 18:00">
-                          Afternoon (06:00 – 18:00)
-                        </option>
+                        <option value="12:00 – 18:00">Afternoon (12:00 – 18:00)</option>
                       </select>
                     </div>
                   ))}

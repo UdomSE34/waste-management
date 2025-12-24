@@ -49,33 +49,48 @@ const CompletedSchedules = () => {
 
   // Fetch data
   // Fetch completed records and schedules
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [completedRes, schedulesRes] = await Promise.all([
-          getCompletedSchedules(),
-          getCollections(),
-        ]);
-        setCompletedRecords(completedRes);
+ // KATIKA useEffect, badilisha hii sehemu:
+useEffect(() => {
+  const fetchData = async () => {
+    try {
+      const [completedRes, schedulesRes] = await Promise.all([
+        getCompletedSchedules(),
+        getCollections(),
+      ]);
+      setCompletedRecords(completedRes);
 
-        const usedScheduleIds = completedRes.map(
-          (r) => r.schedule?.schedule_id
-        );
-        const filteredSchedules = schedulesRes.filter(
-          (s) =>
-            s.status === "Completed" && !usedScheduleIds.includes(s.schedule_id)
-        );
-        setCompletedSchedules(filteredSchedules);
+      // ✅ FIX: Ensure schedulesRes is an array before using filter
+      const schedulesArray = Array.isArray(schedulesRes) ? schedulesRes : 
+                            schedulesRes?.results ? schedulesRes.results : 
+                            schedulesRes?.schedules ? schedulesRes.schedules : 
+                            schedulesRes?.data ? schedulesRes.data : [];
 
-        computeTotals(completedRes); // compute initial totals
-      } catch (err) {
-        setError(err.message || "Failed to load data");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+      console.log('Schedules data:', {
+        original: schedulesRes,
+        isArray: Array.isArray(schedulesRes),
+        converted: schedulesArray,
+        length: schedulesArray.length
+      });
+
+      const usedScheduleIds = completedRes.map(
+        (r) => r.schedule?.schedule_id
+      );
+      
+      const filteredSchedules = schedulesArray.filter(
+        (s) =>
+          s.status === "Completed" && !usedScheduleIds.includes(s.schedule_id)
+      );
+      
+      setCompletedSchedules(filteredSchedules);
+      computeTotals(completedRes);
+    } catch (err) {
+      setError(err.message || "Failed to load data");
+    } finally {
+      setLoading(false);
+    }
+  };
+  fetchData();
+}, []);
 
   // Dustbin handlers
   const handleDustbinChange = (index, field, value) => {
