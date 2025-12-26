@@ -1,5 +1,5 @@
 // Dashboard.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import DataTable from "../components/DataTable";
 import "../css/Dashboard.css";
 
@@ -40,6 +40,11 @@ const Scheduling = () => {
     collection_frequency: 0,
   });
   const [editSelectedDays, setEditSelectedDays] = useState([]);
+
+  // Search and Pagination state
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const DAYS = [
     "Monday",
@@ -88,6 +93,60 @@ const Scheduling = () => {
     };
     fetchData();
   }, []);
+
+  // Filter collections based on search term
+  const filteredCollections = useMemo(() => {
+    const collectionsArray = Array.isArray(collections) ? collections : [];
+    
+    if (!searchTerm.trim()) return collectionsArray;
+
+    const searchLower = searchTerm.toLowerCase();
+    
+    return collectionsArray.filter((item) => {
+      return (
+        (item.day?.toLowerCase().includes(searchLower)) ||
+        (item.slot?.toLowerCase().includes(searchLower)) ||
+        (item.schedule_date?.toLowerCase().includes(searchLower)) ||
+        (item.hotel_name?.toLowerCase().includes(searchLower)) ||
+        (item.status?.toLowerCase().includes(searchLower)) ||
+        (`hotel ${item.hotel}`.includes(searchLower))
+      );
+    });
+  }, [collections, searchTerm]);
+
+  // Pagination calculations
+  const totalItems = filteredCollections.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  
+  // Ensure current page is valid
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+    if (currentPage < 1 && totalPages > 0) {
+      setCurrentPage(1);
+    }
+  }, [currentPage, totalPages]);
+
+  const paginatedCollections = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredCollections.slice(startIndex, endIndex);
+  }, [filteredCollections, currentPage, itemsPerPage]);
+
+  // Handle page change
+  const handlePageChange = (pageNumber) => {
+    if (pageNumber >= 1 && pageNumber <= totalPages) {
+      setCurrentPage(pageNumber);
+    }
+  };
+
+  // Handle items per page change
+  const handleItemsPerPageChange = (e) => {
+    const value = parseInt(e.target.value);
+    setItemsPerPage(value);
+    setCurrentPage(1); // Reset to first page when changing items per page
+  };
 
   /** ---------- ADD ---------- **/
   const handleAddInputChange = (e) => {
@@ -157,6 +216,7 @@ const Scheduling = () => {
 
       setCollections([...collections, ...createdSchedules]);
       resetAddForm();
+      setCurrentPage(1); // Reset to first page after adding new item
     } catch (err) {
       console.error("Failed to create schedule:", err);
       setError("Failed to create schedule. Please try again.");
@@ -254,6 +314,10 @@ const Scheduling = () => {
     try {
       await deleteSchedule(id);
       setCollections((prev) => prev.filter((c) => c.schedule_id !== id));
+      // Reset to first page if current page becomes empty
+      if (paginatedCollections.length === 1 && currentPage > 1) {
+        setCurrentPage(currentPage - 1);
+      }
     } catch (err) {
       console.error("Delete failed:", err);
       setError("Failed to delete schedule.");
@@ -261,9 +325,6 @@ const Scheduling = () => {
   };
 
   if (loading) return <div className="loading">Loading scheduling data...</div>;
-  
-  // ✅ FIX: Check if collections is an array before using filter
-  const collectionsArray = Array.isArray(collections) ? collections : [];
 
   return (
     <div className="content">
@@ -289,12 +350,12 @@ const Scheduling = () => {
               <i className="bi bi-clipboard-data"></i>
             </span>
           </div>
-          <h4>{collectionsArray.length}</h4>
+          <h4>{collections.length}</h4>
           <p>
-            {collectionsArray.filter((c) => c.status === "Pending").length} pending •{" "}
-            {collectionsArray.filter((c) => c.status === "In_Progress").length} in
+            {collections.filter((c) => c.status === "Pending").length} pending •{" "}
+            {collections.filter((c) => c.status === "In_Progress").length} in
             progress •{" "}
-            {collectionsArray.filter((c) => c.status === "Completed").length}{" "}
+            {collections.filter((c) => c.status === "Completed").length}{" "}
             completed
           </p>
         </div>
@@ -304,50 +365,181 @@ const Scheduling = () => {
       <div className="card">
         <div className="card-header">
           <h3>Total Request</h3>
-          <button
-            className="btn btn-primary"
-            onClick={() => setShowAddModal(true)}
-          >
-            + New Collection
-          </button>
-        </div>
-
-        {collectionsArray.length > 0 ? (
-          <DataTable
-            columns={["Day", "Slot", "Date", "Hotel", "Status", "Action"]}
-            rows={collectionsArray.map((item) => ({
-              Day: item.day,
-              Slot: item.slot || "N/A",
-              Date:item.schedule_date,
-              Hotel: item.hotel_name || `Hotel ${item.hotel}`,
-              Status: item.status,
-              Action: (
-                <div className="action-buttons">
-                  <button
-                    className="btn btn-outline"
-                    onClick={() => openEditModal(item)}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    className="btn btn-danger"
-                    onClick={() => handleDelete(item.schedule_id)}
-                  >
-                    Delete
-                  </button>
-                </div>
-              ),
-            }))}
-          />
-        ) : (
-          <div className="empty-state">
-            <p>No schedules found</p>
-            <button 
+          <div className="table-controls">
+            {/* Search Input */}
+            <div className="search-container">
+              <i className="bi bi-search"></i>
+              <input
+                type="text"
+                className="search-input"
+                placeholder="Search by day, hotel, status, date..."
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1); // Reset to first page when searching
+                }}
+              />
+            </div>
+            
+            <button
               className="btn btn-primary"
               onClick={() => setShowAddModal(true)}
             >
-              + Create First Schedule
+              + New Collection
             </button>
+          </div>
+        </div>
+
+        {/* Show search results info */}
+        {searchTerm && (
+          <div className="search-info">
+            <p>
+              Showing {filteredCollections.length} of {collections.length} results for "{searchTerm}"
+              {filteredCollections.length !== collections.length && (
+                <button 
+                  className="btn-text" 
+                  onClick={() => setSearchTerm("")}
+                  style={{ marginLeft: '10px' }}
+                >
+                  Clear search
+                </button>
+              )}
+            </p>
+          </div>
+        )}
+
+        {/* Items per page selector */}
+        <div className="pagination-controls-top">
+          <div className="items-per-page">
+            <label>Show: </label>
+            <select 
+              value={itemsPerPage} 
+              onChange={handleItemsPerPageChange}
+              className="form-control-sm"
+            >
+              <option value="5">5</option>
+              <option value="10">10</option>
+              <option value="20">20</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+            <span> entries</span>
+          </div>
+        </div>
+
+        {paginatedCollections.length > 0 ? (
+          <>
+            <DataTable
+              columns={["Day", "Slot", "Date", "Hotel", "Status", "Action"]}
+              rows={paginatedCollections.map((item) => ({
+                Day: item.day,
+                Slot: item.slot || "N/A",
+                Date: item.schedule_date,
+                Hotel: item.hotel_name || `Hotel ${item.hotel}`,
+                Status: item.status,
+                Action: (
+                  <div className="action-buttons">
+                    <button
+                      className="btn btn-outline"
+                      onClick={() => openEditModal(item)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="btn btn-danger"
+                      onClick={() => handleDelete(item.schedule_id)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                ),
+              }))}
+            />
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="pagination">
+                <button
+                  className="pagination-btn"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  <i className="bi bi-chevron-left"></i> Previous
+                </button>
+                
+                <div className="page-numbers">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+
+                    return (
+                      <button
+                        key={pageNum}
+                        className={`pagination-btn ${currentPage === pageNum ? 'active' : ''}`}
+                        onClick={() => handlePageChange(pageNum)}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                  
+                  {totalPages > 5 && currentPage < totalPages - 2 && (
+                    <>
+                      <span className="pagination-dots">...</span>
+                      <button
+                        className="pagination-btn"
+                        onClick={() => handlePageChange(totalPages)}
+                      >
+                        {totalPages}
+                      </button>
+                    </>
+                  )}
+                </div>
+                
+                <button
+                  className="pagination-btn"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                >
+                  Next <i className="bi bi-chevron-right"></i>
+                </button>
+                
+                <div className="page-info">
+                  Page {currentPage} of {totalPages}
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="empty-state">
+            <p>
+              {searchTerm 
+                ? `No results found for "${searchTerm}"` 
+                : "No schedules found"}
+            </p>
+            {searchTerm ? (
+              <button 
+                className="btn btn-outline"
+                onClick={() => setSearchTerm("")}
+              >
+                Clear search
+              </button>
+            ) : (
+              <button 
+                className="btn btn-primary"
+                onClick={() => setShowAddModal(true)}
+              >
+                + Create First Schedule
+              </button>
+            )}
           </div>
         )}
       </div>
