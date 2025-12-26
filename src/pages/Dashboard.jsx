@@ -13,7 +13,7 @@ import {
 } from "../services/DashboardService";
 import { getHotels } from "../services/hotelServices";
 
-const Scheduling = () => {
+const Dashboard = () => {
   const [collections, setCollections] = useState([]);
   const [hotels, setHotels] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -753,4 +753,4 @@ const Scheduling = () => {
   );
 };
 
-export default Scheduling;
+export default Dashboard;
